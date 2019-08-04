@@ -690,11 +690,23 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
             else:
                 return srvo_pos
     
+        def ConvAngToMsJX (ang):
+            srvo_pos = (((500.0-2500.0) / 180.0) * ang) + 2500
+            if srvo_pos > 2500:
+                srvo_pos = 2500.0
+                return srvo_pos
+                
+            elif srvo_pos < 500:
+                srvo_pos = 500.0
+                return srvo_pos
+                
+            else:
+                return srvo_pos
 
         if leg_ID == "RF":
             output_dict["RF"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RF"]["RF_CoxaAng"])))
-            output_dict["RF"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["RF"]["RF_FemurAng"])))
-            output_dict["RF"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["RF"]["RF_TibiaAng"])))
+            output_dict["RF"]["pos_femur"] = int(round(ConvAngToMsJX(recalc_dict["RF"]["RF_FemurAng"])))
+            output_dict["RF"]["pos_tibia"] = int(round(ConvAngToMsJX(recalc_dict["RF"]["RF_TibiaAng"])))
             
         elif leg_ID == "RM":
             output_dict["RM"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_CoxaAng"])))
@@ -708,8 +720,8 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         
         elif leg_ID == "LF":
             output_dict["LF"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LF"]["LF_CoxaAng"])))
-            output_dict["LF"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["LF"]["LF_FemurAng"])))
-            output_dict["LF"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["LF"]["LF_TibiaAng"])))
+            output_dict["LF"]["pos_femur"] = int(round(ConvAngToMsJX(recalc_dict["LF"]["LF_FemurAng"])))
+            output_dict["LF"]["pos_tibia"] = int(round(ConvAngToMsJX(recalc_dict["LF"]["LF_TibiaAng"])))
             
         elif leg_ID == "LM":
             output_dict["LM"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_CoxaAng"])))
