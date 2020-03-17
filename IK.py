@@ -1,16 +1,21 @@
 from math import sqrt, pow, degrees, radians, sin, cos, tan, acos, atan, atan2
+from copy import deepcopy
 
-IK_in = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0}
-IK_in_for_Swing = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0}
+IK_in = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0} #225.0
+IK_in_for_Swing = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0} #225.0 is the default value 260 id for experimental purposes to cgange main stance
+#auxVal = {"recoveryReq": False, "recoveryVal": 0, "lift_value": 35.0, "dist_to_grnd": 160.0}
 
 ConstantVal = { "dist_center_corncoxa": 121.0,
                 "dist_center_midcoxa": 101.0,
                 "lCoxa": 52.17,
                 "lFemur": 75.0,
-                "lTibia": 187.35,
+                "lTibia": 165.9,                 # was 187.35. Modified to 165.9 after tibia servos were flipped
                 "angCornCoxa": 51.0,
                 "angMidCoxa": 0.0,
-                "z_offset_def": 160.0
+                "z_offset_def": 138.55 #110.0     # 160.0 is the default walue. 110.0 is for experimental purposes to change main stance.
+                                                  # The default valu had to be modified with 21,45 (160-21,45=138,55) in order to not to 
+                                                  # have movement on Z axis when changing from pre calculated positions (pos.py) to calcualted
+                                                  # positions
               }
 
 IK_out = {
@@ -660,10 +665,8 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         elif leg_ID == "LM":
             if rawang_dict["LM"]["LM_CoxaAng"] >= 0:
                 recalc_dict["LM"]["LM_CoxaAng"] = abs(180 - 90 - abs(rawang_dict["LM"]["LM_CoxaAng"]))
-                print "nagyobb mint 0"
             elif rawang_dict["LM"]["LM_CoxaAng"] < 0:
                 recalc_dict["LM"]["LM_CoxaAng"] = 180 - abs(180 -90 - abs(rawang_dict["LM"]["LM_CoxaAng"]))
-                print "kissebb mint 0"
             
             #recalc_dict["LM"]["LM_CoxaAng"] =  180.0 - abs(180 - 90 - abs(rawang_dict["LM"]["LM_CoxaAng"])) # Ha POS_Y=>0 akkor abs(180-90-abs(LM_CoxaAng)), ha POS_Y<= akkor 180-abs(180-90-abs(LM_CoxaAng)) 
             #recalc_dict["LM"]["LM_CoxaAng"] =  180.0 - (90.0 + rawang_dict["LM"]["LM_CoxaAng"])
@@ -734,11 +737,11 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
             output_dict["LR"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_TibiaAng"])))
     
     
-    LegEndPoint(leg_ID, ConstantVal, IK_in, FeetPosVal)
-    LegTotal(leg_ID, IK_in, CoxaCoord, FeetPosVal, LegTotalVal)
-    RollnPitch_Z(leg_ID, IK_in, LegTotalVal, RollPitchVal)
-    BodyIK(leg_ID, IK_in, LegTotalVal, RollPitchVal, BodyIKVal)
-    LegNewPos(leg_ID, IK_in, FeetPosVal, BodyIKVal, NewPos)
+    LegEndPoint(leg_ID, ConstantVal, input_dict, FeetPosVal)                     #testing with input_dict, before input_dict there was IK_in
+    LegTotal(leg_ID, input_dict, CoxaCoord, FeetPosVal, LegTotalVal)             #testing with input_dict, before input_dict there was IK_in
+    RollnPitch_Z(leg_ID, input_dict, LegTotalVal, RollPitchVal)                  #testing with input_dict, before input_dict there was IK_in
+    BodyIK(leg_ID, input_dict, LegTotalVal, RollPitchVal, BodyIKVal)             #testing with input_dict, before input_dict there was IK_in
+    LegNewPos(leg_ID, input_dict, FeetPosVal, BodyIKVal, NewPos)                 #testing with input_dict, before input_dict there was IK_in
     LegAuxDists(leg_ID, NewPos, ConstantVal, LegAuxVal)
     AngsFromTriangles(leg_ID, LegAuxVal, NewPos, ConstantVal, TrgAngVal)
     LegRawAngles(leg_ID, NewPos, TrgAngVal, RawAngVal)
@@ -801,51 +804,72 @@ def IK_SixLeg():
     IK("LR", IK_in, ConstantVal, IK_out)
 
 
-def IK_Tripod_A(input_dict):
-    IK("RF", input_dict, ConstantVal, TripodA_MoveTable)
-    IK("LM", input_dict, ConstantVal, TripodA_MoveTable)
-    IK("RR", input_dict, ConstantVal, TripodA_MoveTable)
-
-def IK_Tripod_B(input_dict):
-    IK("LF", input_dict, ConstantVal, TripodB_MoveTable)
-    IK("RM", input_dict, ConstantVal, TripodB_MoveTable)
-    IK("LR", input_dict, ConstantVal, TripodB_MoveTable)
+def IK_Tripod_A(mode):
+    if mode == "support":
+        IK("RF", IK_in, ConstantVal, TripodA_MoveTable)
+        IK("LM", IK_in, ConstantVal, TripodA_MoveTable)
+        IK("RR", IK_in, ConstantVal, TripodA_MoveTable)
+        #print TripodA_MoveTable
+    elif mode == "swing":
+        IK("RF", IK_in_for_Swing, ConstantVal, TripodA_MoveTable)
+        IK("LM", IK_in_for_Swing, ConstantVal, TripodA_MoveTable)
+        IK("RR", IK_in_for_Swing, ConstantVal, TripodA_MoveTable)
+        
+        
+def IK_Tripod_B(mode):
+    if mode == "support":
+        print "IK_in Tripod B-bol printelve:"
+        print IK_in
+        print "\n"
+        IK("LF", IK_in, ConstantVal, TripodB_MoveTable)
+        IK("RM", IK_in, ConstantVal, TripodB_MoveTable)
+        IK("LR", IK_in, ConstantVal, TripodB_MoveTable)
+        print "Tripod B movetable SUPPORT:"
+        print TripodB_MoveTable 
+        print "\n"
+    elif mode == "swing":
+        print "IK_in_for_Swing Tripod B-bol printelve:"
+        print IK_in_for_Swing
+        print "\n"
+        IK("LF", IK_in_for_Swing, ConstantVal, TripodB_MoveTable)
+        IK("RM", IK_in_for_Swing, ConstantVal, TripodB_MoveTable)
+        IK("LR", IK_in_for_Swing, ConstantVal, TripodB_MoveTable)
+        print "Tripod B movetable SWING:"
+        print TripodB_MoveTable 
+        print "\n"
+        
     
-    
-    
-    
-def CalcMoveVector(input_dict):
-    MoveVector = sqrt(pow(input_dict["POS_X"],2) + pow(input_dict["POS_Y"],2))
-    if MoveVector < 0.14:
-        MoveVector = 0
-        return MoveVector
+def CalcWalkVector():
+    Vector = sqrt(pow(IK_in["POS_X"],2) + pow(IK_in["POS_Y"],2))
+    if Vector < 0.14:
+        Vector = 0
+        return Vector
     else:
-        return MoveVector
+        return Vector
 
 
 def CalcStepTime(vector):
     """MAX movetime = 3000ms, MIN movetime = 750ms
     MAX vector = 1,41, MIN vector = 0,1"""
-    Time = ((750 - 3000) * ((vector - 0,1) / (1,41 - 0,1))) + 3000
+    Time = ((750 - 3000) * ((vector - 0.1) / (1.41 - 0.1))) + 3000
     return Time
-
-
-def ModifyIKinForSwingLeg(source_coord, aux_coord, direction):
-    aux_coord = source_coord
-    lift_value = 60                                     # az emeles merteke legyen a teljes mozgastartomany (120) fele
-    if direction == "up":
-        aux_coord["D"] = aux_coord["D"] - lift_value    # Csak felfele (lab emelesnel) kell ellenorizni, hogy ervenyes pozicio lesz-e
-        recoveryReq = False
-        if aux_coord["D"] < 120:
-            recoveryReq = True
-            recoveryVal = aux_coord["D"]
-            aux_coord["D"] = 120
-    elif direction == "down":
-        if recoveryReq == True:
-            aux_coord["D"] = recoveryVal + lift_value
-        elif recoveryReq == False:
-            aux_coord["D"] = aux_coord["D"] + lift_value    # lefel az "eredeti allapotot kell visszaallitani...
     
+
+def IK_Calc_SwingLegs(aux_coord, aux_val, direction):
+        if direction == "up":
+            if aux_val["dist_to_grnd"] - aux_val["lift_value"] > 120:
+                aux_coord["POS_Z"] = aux_coord["POS_Z"] - aux_val["lift_value"]
+            elif aux_val["dist_to_grnd"] - aux_val["lift_value"] < 120:
+                aux_val["diff"] = aux_val["dist_to_grnd"] - aux_val["lift_value"]
+                aux_coord["POS_Z"] = aux_coord["POS_Z"] - aux_val["diff"]
+                aux_val["recoveryReq"] = True
+        elif direction == "down":
+            if aux_val["recoveryReq"] == True:
+                aux_coord["POS_Z"] + aux_val["diff"]
+            else:
+                aux_coord["POS_Z"] = aux_coord["POS_Z"] + aux_val["lift_value"]
+
+#IK_Tripod_B("swing")
 #IK_SixLeg()
 #IK_Diag(IK_out)
 

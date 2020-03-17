@@ -5,11 +5,14 @@ Created on Fri Jan 26 21:29:41 2018
 @author: Rozsee
 """
 import serial  
+#from copy import deepcopy
 #import RPi.GPIO as GPIO                                                      # GPIO-t kezelő modul importálása
 #GPIO.setmode(GPIO.BCM)        
 import pos
-from IK import IK_out
+#import IK
+from IK import IK_in, IK_out, TripodA_MoveTable, TripodB_MoveTable
 
+#walkVal = {"tripod_substep": 0, "walkmode": "TRIPOD", "def_tripod_step_1_complete": False, "def_tripod_step_2_complete": False}
 
 """CLASSES..."""
 class Servo:
@@ -35,11 +38,11 @@ class Leg:
     
     def updatePosition(self, posDict):
         self.Coxa.Position = posDict["pos_coxa"]
-        print self.Coxa.Position
+        #print self.Coxa.Position
         self.Femur.Position = posDict["pos_femur"]
-        print self.Femur.Position
+        #print self.Femur.Position
         self.Tibia.Position = posDict["pos_tibia"]
-        print self.Tibia.Position
+        #print self.Tibia.Position
 
     def SetLegPosition(self):
         Servo.SetServoPosition(self.Coxa)
@@ -71,7 +74,7 @@ class SrvCtrl(object):
     def __init__(self, name):
         self.Name = name
         self.CmdBuf = ""
-        self.Port = serial.Serial('COM9', 115200, timeout = 0.06)              # LINUXHOZ: serial.Serial('/dev/ttyAMA0', 115200, timeout = 1) comport was 3
+        self.Port = serial.Serial('COM3', 115200, timeout = 0.06)              # LINUXHOZ: serial.Serial('/dev/ttyAMA0', 115200, timeout = 1) comport was 3
 
     def SetToMove(self, cmd_string):
         """ A paraméterként megadott stringet mindíg hozzáadjuk a CmdBuf-hoz """
@@ -105,13 +108,13 @@ class SrvCtrl(object):
         """ ExecuteMove-al adjuk hozzá a CmdBuf-hoz a mozgatási időt (le-
         zárva a parancs szringet) és küldjük ki soros porton a  parancsot
         szervovezérlőnek ezzel indítva a mozgás végrehajtását """
-        defMoveTime = 750
+        defMoveTime = 750                                               # was 750 
         if MoveTime == None:
             self.CmdBuf = self.CmdBuf + "T" + str(defMoveTime) + "\r\n"
-            print "SRVCTRL in: " + self.CmdBuf
+            #print "SRVCTRL in: " + self.CmdBuf
             self.Port.write(self.CmdBuf)
-            if querry == True:
-                print "querry TRUE default movetime"
+            if querry == "Poll":
+                print "SSC32: Polling SRVCNTRL till movement finished... Using default movetime..."
                 while True:
                     self.Port = "Q\r\n"
                     resp = self.Port.readline()
@@ -119,15 +122,15 @@ class SrvCtrl(object):
                     if resp == ".":
                         break
                 self.CmdBuf = ""
-            else:
-                print "ez nem a querry = False, default movetime"
+            elif querry == "NoPoll":
+                print "SSC32: Polling turned OFF! Using default movetime..."
                 self.CmdBuf = ""
         else:
             self.CmdBuf = self.CmdBuf + "T" + str(MoveTime) + "\r\n"
-            print "SRVCTRL in: " + self.CmdBuf
+            #print "SRVCTRL in: " + self.CmdBuf
             self.Port.write(self.CmdBuf)
-            if querry == True:
-                print "querry = true, adott movetime"
+            if querry == "Poll":
+                print "SSC32: Polling SRVCNTRL movement finished... Using preset/calc. movetime"
                 while True:
                     self.Port.write("Q\r\n")
                     resp = self.Port.readline()
@@ -135,8 +138,8 @@ class SrvCtrl(object):
                     if resp == ".":
                         break
                 self.CmdBuf = ""     
-            else:
-                print "ez a querry = False, adott movetime"
+            elif querry == "NoPoll":
+                print "SSC32: Polling turned OFF! Using preset/calc. movetime."
                 self.CmdBuf = ""
 
 
@@ -228,10 +231,10 @@ class Hexapod(object):
             self.LR.updatePosition(input_dict["LR"])
             if leg_mode == "swing":
                 self.SetLegsPosition("all")
-                self.SRVCTRL.ExecuteMove(steptime, True)
+                self.SRVCTRL.ExecuteMove(steptime, "Poll")
             elif leg_mode == "support":
                 self.SetLegsPosition("all")
-                self.SRVCTRL.ExecuteMove(steptime, False)
+                self.SRVCTRL.ExecuteMove(steptime, "NoPoll")
 
         elif legs_select == "TripodA":
             self.RF.updatePosition(input_dict["RF"])
@@ -239,10 +242,10 @@ class Hexapod(object):
             self.RR.updatePosition(input_dict["RR"])
             if leg_mode == "swing":
                 self.SetLegsPosition("TripodA")
-                self.SRVCTRL.ExecuteMove(steptime, True)
+                self.SRVCTRL.ExecuteMove(steptime, "Poll")
             elif leg_mode == "support":
                 self.SetLegsPosition("TripodA")
-                self.SRVCTRL.ExecuteMove(steptime, False)
+                self.SRVCTRL.ExecuteMove(steptime, "NoPoll")
 
         elif legs_select == "TripodB":
             self.LF.updatePosition(input_dict["LF"])
@@ -250,10 +253,10 @@ class Hexapod(object):
             self.LR.updatePosition(input_dict["LR"])
             if leg_mode == "swing":
                 self.SetLegsPosition("TripodB")
-                self.SRVCTRL.ExecuteMove(steptime, True)
+                self.SRVCTRL.ExecuteMove(steptime, "Poll")
             elif leg_mode == "support":
                 self.SetLegsPosition("TripodB")
-                self.SRVCTRL.ExecuteMove(steptime, False)
+                self.SRVCTRL.ExecuteMove(steptime, "NoPoll")
 
 
     def SetLegsPosition(self, legs_select):
@@ -312,6 +315,14 @@ class Hexapod(object):
         self.Update_Spdict(pos.idle_to_rdy["step_8"], "TripodA", "swing", 500) # TPB
         self.Update_Spdict(pos.idle_to_rdy["step_9"], "TripodA", "swing", 500) # TPB
 
+    def go_to_Ready_v2(self):
+        """ IDLE pozícióból READY pozicíóba viszi a robotot """
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_1"], "all", "swing", 500)
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_2"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_3"], "TripodB", "swing", 250) # TPA
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_4"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_5"], "TripodA", "swing", 250) # TPB
+
     def return_to_Ready(self):
         """ Elvileg bármilyen pozícióbol READY pozícióba viszi a robotot """
         self.Update_Spdict(pos.ret_to_rdy["step_1"], "TripodB", "swing", 500)
@@ -321,7 +332,7 @@ class Hexapod(object):
     
 
     def use_IK_calc(self):
-        self.Update_Spdict(IK_out, "all", "swing", 750)
+        self.Update_Spdict(IK_out, "all", "support", 500)                         # time was 750ms, mode was swing -> each new position was waited to be executed 
 
     
     def go_to_Trans_I(self):
@@ -331,21 +342,108 @@ class Hexapod(object):
         self.Update_Spdict(pos.rdy_to_trns_1["step_4"])
         self.Update_Spdict(pos.rdy_to_trns_1["step_5"])
     
-    """def return_from_Trans_I(self):
-        pass"""
+    def MoveTripodA(self, gate, mode, StepTime):
+        if gate == "default":
+            if mode == "support":
+                self.Update_Spdict(TripodA_MoveTable, "TripodA", "support", StepTime)
+            elif mode == "swing":
+                print "Most emelem A-t!"
+                self.Update_Spdict(TripodA_MoveTable, "TripodA", "swing", StepTime / 2)
+        elif gate == "wave":
+            pass
+
+
+    def MoveTripodB(self, gate, mode, StepTime):
+        if gate == "default":
+            if mode == "support":
+                print "Most tartom B-t!"
+                self.Update_Spdict(TripodB_MoveTable, "TripodB", "support", StepTime)
+            elif mode == "swing":
+                print "Most emelem B-t!"
+                self.Update_Spdict(TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
+        elif gate == "wave":
+            pass
+
+
+
+    """
+    def Def_TRIPOD_Step_1(walk_val):
+        
+        IK_Tripod_A("support")
+        self.Update_Spdict(TripodA_MoveTable, "TripodA", "support", StepTime)
+        
+        global IK_in_for_Swing
+     
+        ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, auxVal, "up")               # ADD x to z_offset distance to lift legs 
+        IK_Tripod_B("swing")
+        self.Update_Spdict(TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
+        print "TRPD B UP"
+
+        IK.ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, auxVal, "down")          # SUBTRACT x from z_offset distance to lower legs
+        IK_Tripod_B("swing")
+        self.Update_Spdict(TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
+        print "TRPD B DOWN"
+
+        IK_in_for_Swing = dict.fromkeys(IK_in_for_Swing, 0)
+        
+        walk_val["def_tripod_step_1_complete"] = True
+        walk_val["def_tripod_step_2_complete"] = False
+        """
     
-    def Walk(self):
-        pass
-    
-    def Rotate(self):
-        pass
-    
-    def Translate(self):
-        pass
-    
-    
+    """
+    def Walk_def_TRIPOD(self, walk_val):
+        #StepTime = int(round(IK.CalcStepTime(WalkVector)))                        # a legkozelebbi integerre kerekitjuk a steptime valtozot
+        StepTime = 750        
+        if walk_val["tripod_substep"] == 0:
+            print "LEPES CIKLUS START!"
+            IK_Tripod_A("support")
+            self.Update_Spdict(TripodA_MoveTable, "TripodA", "support", StepTime)
+            
+                         
+            ModifyIKinForSwingLeg(IK_in, auxVal, "up", IK_in_for_Swing)                  # ADD x to z_offset distance to lift legs 
+            print IK_in_for_Swing
+            
+            IK_Tripod_B("swing")
+            self.Update_Spdict(TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
+            print "TRPD B UP"
+            
+       
+
+            IK.ModifyIKinForSwingLeg(IK_in, auxVal, "down", IK_in_for_Swing)                # SUBTRACT x from z_offset distance to lower legs
+            print "IK for swing:"
+            print IK_in_for_Swing
+            
+            self.Update_Spdict(TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
+            print "TRPD B DOWN"
+            
+           
+         #   IK_in_for_Swing = dict.fromkeys(IK_in_for_Swing, 0)
+            
+            walk_val["tripod_substep"] = 1
+
+        elif walk_val["tripod_substep"] == 1:
+            IK_Tripod_B("support")
+            self.Update_Spdict(TripodB_MoveTable, "TripodB", "support", StepTime)   
+
+            ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, auxVal, "up")                  # ADD x to z_offset distance to lift legs
+            IK_Tripod_A("swing")
+            self.Update_Spdict(TripodA_MoveTable, "TripodA", "swing", StepTime / 2)
+            print "TRPD A UP"
+
+            ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, auxVal, "down")                #SUBTRACT x from z_offset distance to lower legs
+            IK_Tripod_A("swing")
+            self.Update_Spdict(TripodA_MoveTable, "TripodA", "swing", StepTime / 2)
+            print "TRPD A DOWN"
+
+            IK_in_for_Swing = dict.fromkeys(IK_in_for_Swing, 0)
+
+            walk_val["tripod_substep"] = 0
+            print "LEPES CIKLUS END!"
+    """
+    """
     def LegFeetToGround(self, leg):
         pass
     
     def TripodFeetToGround(self, tripod):
         pass
+    """

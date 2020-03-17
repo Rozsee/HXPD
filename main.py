@@ -10,12 +10,13 @@ sys.setdefaultencoding('utf8')
 import obj
 import funct
 import IK
-from IK import IK_in, IK_in_for_Swing
+import time
+from copy import deepcopy
+from IK import IK_in, IK_in_for_Swing, IK_Tripod_A, IK_Tripod_B
 
 
 """ VARIABLE DECLARATIONS """
 modeVal = {"mode": 0, "prev_mode": 0 }
-walkVal = {"tripod_substep": 0, "walkmode": "TRIPOD"}
 joyVal = {"PSBTN_counter": 0}
 flags = {"position_reached": False, 
          "return_to_Ready": False, "return_to_Idle": False,
@@ -28,7 +29,9 @@ AxisBuffer ={
                 "lx_center": False, "ly_center": False, "rx_center": False, "ry_center": False
                 
             }
-auxVal = {"dist_to_grnd": 160.0}
+auxVal = {"dist_to_grnd": 160.0, "lift_value": 35.0, "recoveryReq": False}
+
+walkVal = {"tripod_substep": 0, "walkmode": "TRIPOD", "tripod_step_1_complete": False, "tripod_step_2_complete": False}
 
 EVENT = None
 
@@ -51,24 +54,24 @@ def JoyButtonHandler(event):
                 event = "L1"
             elif i == 5: 
                 event = "R1"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 6: 
                 event = "L2"
             elif i == 7: 
                 event = "R2"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 8: 
                 event = "SHARE"
             elif i == 9: 
                 event = "OPTIONS"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 10: 
                 event = "LEFT THUMB. BTN."
             elif i == 11: 
                 event = "RIGHT THUMB. BTN."
             elif i == 12: 
                 event = "PSBTN"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 13: 
                 event = "TOUCH SCREEN"
     
@@ -149,8 +152,8 @@ def ThumbJoyHandler(jbuff, axisbuff, flag_dict, event):
 
     if flag_dict["flag_thumbJoyStateChng_lx"] or flag_dict["flag_thumbJoyStateChng_ly"] or flag_dict["flag_thumbJoyStateChng_rx"] or flag_dict["flag_thumbJoyStateChng_ry"] == True:
         event = "THMB_JOY"
-        print "THMB_JOYEVENT ---> THMB_JOYEVENT"
-        EventDispatch(event, modeVal, IK_in, JoyBuffer, flags)
+        #print "THMB_JOYEVENT ---> THMB_JOYEVENT"
+        EventDispatch(event, modeVal, IK_in, JoyBuffer, flags, auxVal)
         flag_dict["flag_thumbJoyStateChng"] = False
     
     
@@ -164,10 +167,11 @@ def EventSource():
             pass
             
         elif event.type == funct.pygame.JOYAXISMOTION:
+            time.sleep(0.15) # szuresi kiserlet joymozgas
             ThumbJoyHandler(JoyBuffer, AxisBuffer, flags, EVENT)
     
     
-def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict):
+def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval):
     if (event == "OPTIONS"):                                                    # HA az OPTIONS gombot megnyomtak,
         print "MAIN: Changing mode..."
         mode_dict["prev_mode"] = mode_dict["mode"]
@@ -180,7 +184,7 @@ def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict):
             mode_dict["mode"] = 1                                               # menjunk vissza READY mode-ba
             
         event = ""                                                              # EVENT valtozo torlese
-        print "MAIN_ mode is: " + str(mode_dict["mode"])
+        print "MAIN: Mode is: " + str(mode_dict["mode"])
         flag_dict["position_reached"] = False
         
     elif (event == "PSBTN"):                                                    # HA a PS gombot 1x megnyomjuk, akkor visszatérünk ready-be,                
@@ -214,54 +218,39 @@ def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict):
             
             
     elif event == "THMB_JOY":
-        if mode_dict["mode"] == 2:
+        if mode_dict["mode"] == 2:                                              # Thmb joy analog ertekeinek allokálása "STATIC" mod esetén (2)
             direction_dict["ROT_X"] = 10 * jbuff["left_y"]
             direction_dict["ROT_Y"] = 10 * jbuff["left_x"] 
             direction_dict["POS_X"] = 50 * jbuff["right_x"] 
             direction_dict["POS_Y"] = 50 * jbuff["right_y"]
             flag_dict["position_reached"] = False
                 
+        elif mode_dict["mode"] == 3:
+            direction_dict["POS_X"] = 50 * jbuff["right_x"] 
+            direction_dict["POS_Y"] = 50 * jbuff["right_y"]
+        
     elif (event == "R1"):                                                       # Függőleges emelkedes Z tengely menten 10mm lepesekben
         if mode_dict["mode"] == 2:
-            if auxVal["dist_to_grnd"] < 240:
+            if auxval["dist_to_grnd"] < 240:
                 direction_dict["POS_Z"] = direction_dict["POS_Z"] + 10
-                auxVal["dist_to_grnd"] = auxVal["dist_to_grnd"] + 10
-                print auxVal["dist_to_grnd"]
+                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] + 10
+                print auxval["dist_to_grnd"]
                 flag_dict["position_reached"] = False
             else:
                 print "DIAG: POS_Z max value reached!"
                 
     elif (event == "R2"):                                                       # Függőleges ereszkedes Z tengely menten 10mm lepesekben
         if mode_dict["mode"] == 2:          
-            if auxVal["dist_to_grnd"] > 110:                                    # 120 volt. 110-re modositva, hogy a lepesnel az emelt labnak legyen tartaleka
+            if auxval["dist_to_grnd"] > 110:                                    # 120 volt. 110-re modositva, hogy a lepesnel az emelt labnak legyen tartaleka
                 direction_dict["POS_Z"] = direction_dict["POS_Z"] - 10
-                auxVal["dist_to_grnd"] = auxVal["dist_to_grnd"] - 10
-                print auxVal["dist_to_grnd"]
+                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] - 10
+                print auxval["dist_to_grnd"]
                 flag_dict["position_reached"] = False
             else:
                 print "DIAG: POS_Z min value reached!"
             
-"""         
-    elif (event == "R1"):                                                       # Függőleges emelkedes Z tengely menten 10mm lepesekben
-        if mode_dict["mode"] == 2:
-            direction_dict["POS_Z"] = direction_dict["POS_Z"] + 10
-            if direction_dict["POS_Z"] >= 240:
-                direction_dict["POS_Z"] = 240
-                print "POS_Z max value reached!"
-                flag_dict["position_reached"] = False
-            flag_dict["position_reached"] = False
-        
-    elif (event == "R2"):                                                       # Függőleges ereszkedes Z tengely menten 10mm lepesekben
-        if mode_dict["mode"] == 2:
-            direction_dict["POS_Z"] = direction_dict["POS_Z"] - 10
-            if direction_dict["POS_Z"] <= 30:
-                direction_dict["POS_Z"] = 30
-                print "POS_Z min value reached!"
-                flag_dict["position_reached"] = False
-            flag_dict["position_reached"] = False
-"""
 
-def EventExecute(event, mode_dict, flag_dict):
+def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
     if mode_dict["mode"] == 0: # IDLE
         if flag_dict["position_reached"] == False:
             if flag_dict["return_to_Idle"] == True:
@@ -272,8 +261,8 @@ def EventExecute(event, mode_dict, flag_dict):
                 flag_dict["position_reached"] = True
             
             elif flag_dict["return_to_Idle"] == False:
-                print "MAIN: MODE set to IDLE"                      # ide még a fejet idle-be parancsot be kell szúrni
-                kematox.SetUpIdle()                                 # Kezdo, leultetett allapot felvetele
+                print "MAIN: MODE set to IDLE"                                  # ide még a fejet idle-be parancsot be kell szúrni
+                kematox.SetUpIdle()                                             # Kezdo, leultetett allapot felvetele
                 print "MAIN: IDLE position reached\n"
                 flag_dict["position_reached"] = True
                 
@@ -286,6 +275,7 @@ def EventExecute(event, mode_dict, flag_dict):
                 print "MAIN: Returning to READY"
                 kematox.return_to_Ready()
                 IK_in["POS_Z"] = 0.0
+                auxval["dist_to_grnd"] = 160.0                                  # A magasság jelzo valtozo visszairasa a default értékre                
                 print "MAIN: READY position reached\n"
                 flag_dict["return_to_Ready"] = False
                 flag_dict["position_reached"] = True
@@ -293,6 +283,7 @@ def EventExecute(event, mode_dict, flag_dict):
             elif flag_dict["return_to_Ready"] == False:
                 print "MAIN: MODE set to READY"
                 kematox.go_to_Ready()
+                #kematox.go_to_Ready_v2()
                 print "MAIN: READY position reached\n"
                 flag_dict["position_reached"] = True
                 
@@ -310,38 +301,32 @@ def EventExecute(event, mode_dict, flag_dict):
             pass
         
     elif mode_dict["mode"] == 3: # WALK
-        print "MAIN: MODE set to WALK"
-        if walkVal["walkmode"] == "TRIPOD":
-            MoveVector = IK.CalcMoveVector()
-            while MoveVector > 0: 
-                StepTime = IK.CalcStepTime()
-                if walkVal["tripod_substep"] == 0:
-                    IK.IK_Tripod_A(IK_in)
-                    kematox.Update_Spdict(IK.TripodA_MoveTable, "TripodA", "support", StepTime)
-
-                    IK.ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, "up")                  # ADD x to z_offset distance to lift legs
-                    IK.IK_Tripod_B(IK_in_for_Swing)
-                    kematox.Update_Spdict(IK.TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
-
-                    IK.ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, "down")                # SUBTRACT x from z_offset distance to lower legs
-                    IK.IK_Tripod_B(IK_in_for_Swing)
-                    kematox.Update_Spdict(IK.TripodB_MoveTable, "TripodB", "swing", StepTime / 2)
-
-                    walkVal["tripod_substep"] = 1
-
-                elif walkVal["tripod_substep"] == 1:
-                    IK.IK_Tripod_B(IK_in)
-                    kematox.Update_Spdict(IK.TripodB_MoveTable, "TripodA", "support", StepTime)   
-
-                    IK.ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, "up")                  # ADD x to z_offset distance to lift legs
-                    IK.IK_Tripod_A(IK_in_for_Swing)
-                    kematox.Update_Spdict(IK.TripodA_MoveTable, "TripodB", "swing", StepTime / 2)
-
-                    IK.ModifyIKinForSwingLeg(IK_in, IK_in_for_Swing, "down")                #SUBTRACT x from z_offset distance to lower legs
-                    IK.IK_Tripod_A(IK_in_for_Swing)
-                    kematox.Update_Spdict(IK.TripodA_MoveTable, "TripodB", "swing", StepTime / 2)
-
-                    walkVal["tripod_substep"] = 0
+        #kematox.return_to_Ready()
+        if walkval["walkmode"] == "TRIPOD":
+            WalkVector = IK.CalcWalkVector()
+            #print "WalkVector = " + str(WalkVector)
+            if WalkVector > 0: 
+                # -----STEP_1------
+                IK_Tripod_A("support")
+                kematox.MoveTripodA("default", "support", 750)
+                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "up")         # creates IK_in_for_Swing with modified coordinates
+                IK_Tripod_B("swing")                                        # creates TripodB_MoveTable according to IK_in_for_Swing 
+                kematox.MoveTripodB("default", "swing", 750)                # executes movement according to TripodB_MoveTable
+                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "down")
+                IK_Tripod_B("swing") 
+                kematox.MoveTripodB("default", "swing", 750) 
+                # -----STEP_2------
+                IK_Tripod_B("support")
+                kematox.MoveTripodB("default", "support", 750)
+                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "up")
+                IK_Tripod_A("swing") 
+                kematox.MoveTripodA("default", "swing", 750) 
+                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "down")
+                IK_Tripod_A("swing")
+                kematox.MoveTripodA("default", "swing", 750)
+            else:
+                pass
+     
     
 """ PROGRAM START """   
 kematox = obj.Hexapod("kematox")
@@ -351,7 +336,7 @@ funct.LookForDevices(kematox)
 while (True):
     try:
         EventSource()
-        EventExecute(EVENT, modeVal, flags)
+        EventExecute(EVENT, modeVal, flags, auxVal, walkVal)
         
     except KeyboardInterrupt:
         funct.StopPrg(kematox)

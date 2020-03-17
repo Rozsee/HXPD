@@ -109,6 +109,54 @@ idle_to_rdy = {
                       }
               }
 
+
+idle_to_rdy_v2 = {
+            "step_1": {# FELÁLL, D=291, z=55, Coxa servos of the front and rear legs are still in the idle position
+                        "RF": {"pos_femur": 1127, "pos_tibia": 1527, "pos_coxa": 2060},
+                        "RM": {"pos_femur": 2032, "pos_tibia": 1723, "pos_coxa": 1500},
+                        "RR": {"pos_femur": 1873, "pos_tibia": 1473, "pos_coxa":  940},
+                        "LF": {"pos_femur": 1873, "pos_tibia": 1473, "pos_coxa":  940},
+                        "LM": {"pos_femur":  968, "pos_tibia": 1277, "pos_coxa": 1500},
+                        "LR": {"pos_femur": 1127, "pos_tibia": 1527, "pos_coxa": 2060}
+                      },
+                      
+            "step_2": {# FELÁLL, TRIPOD_B LÁBAKAT EMEL (RM, LF, LR)
+                        "RF": {"pos_femur": 1127, "pos_tibia": 1527, "pos_coxa": 2060},
+                        "RM": {"pos_femur": 2400, "pos_tibia": 2000, "pos_coxa": 1500},
+                        "RR": {"pos_femur": 1873, "pos_tibia": 1473, "pos_coxa":  940},
+                        "LF": {"pos_femur": 2400, "pos_tibia": 2000, "pos_coxa":  940},
+                        "LM": {"pos_femur":  968, "pos_tibia": 1277, "pos_coxa": 1500},
+                        "LR": {"pos_femur":  600, "pos_tibia": 1000, "pos_coxa": 2060}
+                      },          
+                      
+            "step_3": {# FELÁLL, TRIPOD_B LÁBAKAT LERAK (RM, LF, LR): D=260, z=110)
+                        "RF": {"pos_femur": 1127, "pos_tibia": 1527, "pos_coxa": 2060},
+                        "RM": {"pos_femur": 2158, "pos_tibia": 1920, "pos_coxa": 1500},
+                        "RR": {"pos_femur": 1873, "pos_tibia": 1473, "pos_coxa":  940},
+                        "LF": {"pos_femur": 2235, "pos_tibia": 2040, "pos_coxa":  940},#c1356
+                        "LM": {"pos_femur":  968, "pos_tibia": 1277, "pos_coxa": 1500},
+                        "LR": {"pos_femur":  765, "pos_tibia":  960, "pos_coxa": 2060} #c1644
+                      },       
+            
+            "step_4": {# FELÁLL, TRIPOD_A LÁBAKAT EMEL (RF, RR, LM)
+                        "RF": {"pos_femur":  600, "pos_tibia": 1000, "pos_coxa": 2060},
+                        "RM": {"pos_femur": 2158, "pos_tibia": 1920, "pos_coxa": 1500},
+                        "RR": {"pos_femur": 2400, "pos_tibia": 2000, "pos_coxa":  940},
+                        "LF": {"pos_femur": 2235, "pos_tibia": 2040, "pos_coxa":  940},
+                        "LM": {"pos_femur":  600, "pos_tibia": 1000, "pos_coxa": 1500},
+                        "LR": {"pos_femur":  765, "pos_tibia":  960, "pos_coxa": 2060}
+                      },         
+                      
+            "step_5": {# FELÁLL, TRIPOD_A LÁBAKAT LERAK (RF, RR, LM): D=260, z=110)
+                        "RF": {"pos_femur":  765, "pos_tibia":  960, "pos_coxa": 2060},#c1644
+                        "RM": {"pos_femur": 2158, "pos_tibia": 1920, "pos_coxa": 1500},
+                        "RR": {"pos_femur": 2235, "pos_tibia": 2040, "pos_coxa":  940},#c1356
+                        "LF": {"pos_femur": 2235, "pos_tibia": 2040, "pos_coxa":  940},
+                        "LM": {"pos_femur":  842, "pos_tibia": 1080, "pos_coxa": 1500},
+                        "LR": {"pos_femur":  765, "pos_tibia":  960, "pos_coxa": 2060}
+                      }       
+                  }
+
 rdy_to_idle = {
             "step_1": {# FELÁLL
                         #"RF": {"pos_femur": 1716, "pos_tibia": 1483, "pos_coxa": 2060},
