@@ -21,12 +21,13 @@ joyVal = {"PSBTN_counter": 0}
 flags = {"position_reached": False, 
          "return_to_Ready": False, "return_to_Idle": False,
          "flag_thumbJoyStateChng_lx": False, "flag_thumbJoyStateChng_ly": False, 
-         "flag_thumbJoyStateChng_rx": False, "flag_thumbJoyStateChng_ry": False,}
-JoyBuffer = {"left_x": 0.0, "left_y": 0.0, "right_x": 0.0, "right_y": 0.0}
+         "flag_thumbJoyStateChng_rx": False, "flag_thumbJoyStateChng_ry": False,
+         "flag_JoyStateChng_R2": False, "flag_shiftActivated": False,}
+JoyBuffer = {"left_x": 0.0, "left_y": 0.0, "right_x": 0.0, "right_y": 0.0, "axis_R2": 0.0}
 AxisBuffer ={
-                "axis_lx": 0.0, "axis_ly": 0.0, "axis_rx": 0.0, "axis_ry": 0.0, 
-                "prev_axis_lx": 0.0 , "prev_axis_ly": 0.0, "prev_axis_rx": 0.0, "prev_axis_ry": 0.0,
-                "lx_center": False, "ly_center": False, "rx_center": False, "ry_center": False
+                "axis_lx": 0.0, "axis_ly": 0.0, "axis_rx": 0.0, "axis_ry": 0.0, "axis_L2": 0.0, "axis_R2":0.0,
+                "prev_axis_lx": 0.0 , "prev_axis_ly": 0.0, "prev_axis_rx": 0.0, "prev_axis_ry": 0.0, "prev_axis_R2": 0.0,
+                "lx_center": False, "ly_center": False, "rx_center": False, "ry_center": False, "R2_center": False
                 
             }
 auxVal = {"dist_to_grnd": 160.0, "lift_value": 35.0, "recoveryReq": False}
@@ -50,6 +51,7 @@ def JoyButtonHandler(event):
                 event = "CIRCLE"
             elif i == 3: 
                 event = "TRIANGLE"
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 4: 
                 event = "L1"
             elif i == 5: 
@@ -149,8 +151,29 @@ def ThumbJoyHandler(jbuff, axisbuff, flag_dict, event):
         else:
             flag_dict["flag_thumbJoyStateChng_ry"] = False
     
+    
+    axisbuff["axis_R2"] = funct.ds4.get_axis(4) + 1
+    print str(axisbuff["axis_R2"])
+    if axisbuff["axis_R2"] < 0.1:
+        if axisbuff["R2_center"] == False:
+            axisbuff["axis_R2"] = 0
+            jbuff["axis_R2"] = axisbuff["axis_R2"]
+            print "wiiiiiii"
+            axisbuff["R2_center"] = True
+            flag_dict["flag_JoyStateChng_R2"] = True
+        elif axisbuff["R2_center"] == True:
+            flag_dict["flag_JoyStateChng_R2"] = False
+    elif axisbuff["axis_R2"] > 0.1:
+        if axisbuff["axis_R2"] != axisbuff["prev_axis_R2"]:
+            axisbuff["prev_axis_R2"] = axisbuff["axis_R2"]
+            jbuff["axis_R2"] = axisbuff["axis_R2"]
+            axisbuff["R2_center"] = False
+            flag_dict["flag_JoyStateChng_R2"] = True
+        else:
+            flag_dict["flag_JoyStateChng_R2"] = False
+    
 
-    if flag_dict["flag_thumbJoyStateChng_lx"] or flag_dict["flag_thumbJoyStateChng_ly"] or flag_dict["flag_thumbJoyStateChng_rx"] or flag_dict["flag_thumbJoyStateChng_ry"] == True:
+    if flag_dict["flag_thumbJoyStateChng_lx"] or flag_dict["flag_thumbJoyStateChng_ly"] or flag_dict["flag_thumbJoyStateChng_rx"] or flag_dict["flag_thumbJoyStateChng_ry"] or flag_dict["flag_JoyStateChng_R2"] == True:
         event = "THMB_JOY"
         #print "THMB_JOYEVENT ---> THMB_JOYEVENT"
         EventDispatch(event, modeVal, IK_in, JoyBuffer, flags, auxVal)
@@ -167,7 +190,7 @@ def EventSource():
             pass
             
         elif event.type == funct.pygame.JOYAXISMOTION:
-            time.sleep(0.15) # szuresi kiserlet joymozgas
+            time.sleep(0.1) # szuresi kiserlet joymozgas was 0.15
             ThumbJoyHandler(JoyBuffer, AxisBuffer, flags, EVENT)
     
     
@@ -217,37 +240,37 @@ def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval):
             flag_dict["position_reached"] = False"""   
             
             
-    elif event == "THMB_JOY":
+    elif (event == "THMB_JOY"):
         if mode_dict["mode"] == 2:                                              # Thmb joy analog ertekeinek allokálása "STATIC" mod esetén (2)
-            direction_dict["ROT_X"] = 10 * jbuff["left_y"]
-            direction_dict["ROT_Y"] = 10 * jbuff["left_x"] 
-            direction_dict["POS_X"] = 50 * jbuff["right_x"] 
-            direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-            flag_dict["position_reached"] = False
-                
+            if flag_dict["flag_shiftActivated"] == False:                       # HA SHIFT (Triangle button) nem aktív, akkor x, y tengely melntén forog, vagy "eltolodik" a robot
+                direction_dict["ROT_X"] = 10 * jbuff["left_y"] 
+                direction_dict["ROT_Z"] = 20 * jbuff["left_x"]                  #was 10
+                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
+                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
+                direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
+                flag_dict["position_reached"] = False
+            elif flag_dict["flag_shiftActivated"] == True:                      # HA SHIFT (Triangle button) aktív, akkor x,y mentén "eltolódik a robot, illetve Z tengely mentén fordúl
+                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
+                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
+                direction_dict["ROT_Y"] = 10 * jbuff["left_x"]
+                direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
+                flag_dict["position_reached"] = False
+                    
         elif mode_dict["mode"] == 3:
             direction_dict["POS_X"] = 50 * jbuff["right_x"] 
             direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-        
-    elif (event == "R1"):                                                       # Függőleges emelkedes Z tengely menten 10mm lepesekben
-        if mode_dict["mode"] == 2:
-            if auxval["dist_to_grnd"] < 240:
-                direction_dict["POS_Z"] = direction_dict["POS_Z"] + 10
-                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] + 10
-                print auxval["dist_to_grnd"]
-                flag_dict["position_reached"] = False
-            else:
-                print "DIAG: POS_Z max value reached!"
-                
-    elif (event == "R2"):                                                       # Függőleges ereszkedes Z tengely menten 10mm lepesekben
-        if mode_dict["mode"] == 2:          
-            if auxval["dist_to_grnd"] > 110:                                    # 120 volt. 110-re modositva, hogy a lepesnel az emelt labnak legyen tartaleka
-                direction_dict["POS_Z"] = direction_dict["POS_Z"] - 10
-                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] - 10
-                print auxval["dist_to_grnd"]
-                flag_dict["position_reached"] = False
-            else:
-                print "DIAG: POS_Z min value reached!"
+            direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
+     
+    
+    
+    elif (event == "TRIANGLE"):
+        if mode_dict["mode"] == 2 or 3:
+            if flag_dict["flag_shiftActivated"] == False:
+                flag_dict["flag_shiftActivated"] = True
+                print "SHIFT is ON"
+            elif flag_dict["flag_shiftActivated"] == True:
+                flag_dict["flag_shiftActivated"] = False
+                print "SHIFT is OFF"
             
 
 def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
@@ -262,7 +285,10 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
             
             elif flag_dict["return_to_Idle"] == False:
                 print "MAIN: MODE set to IDLE"                                  # ide még a fejet idle-be parancsot be kell szúrni
-                kematox.SetUpIdle()                                             # Kezdo, leultetett allapot felvetele
+                #kematox.SetUpIdle()                                             # Kezdo, leultetett allapot felvetele
+                
+                funct.SetIdlePos(kematox)
+                              
                 print "MAIN: IDLE position reached\n"
                 flag_dict["position_reached"] = True
                 
@@ -273,16 +299,22 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
         if flag_dict["position_reached"] == False:
             if flag_dict["return_to_Ready"] == True:
                 print "MAIN: Returning to READY"
-                kematox.return_to_Ready()
-                IK_in["POS_Z"] = 0.0
-                auxval["dist_to_grnd"] = 160.0                                  # A magasság jelzo valtozo visszairasa a default értékre                
+                
+                funct.SetReadyPos(kematox, "return")
+                
+                #kematox.return_to_Ready()
+                #IK_in["POS_Z"] = 0.0
+                #auxval["dist_to_grnd"] = 160.0                                  # A magasság jelzo valtozo visszairasa a default értékre                
                 print "MAIN: READY position reached\n"
                 flag_dict["return_to_Ready"] = False
                 flag_dict["position_reached"] = True
                 
             elif flag_dict["return_to_Ready"] == False:
                 print "MAIN: MODE set to READY"
-                kematox.go_to_Ready()
+                
+                funct.SetReadyPos(kematox, "set")
+                
+                #kematox.go_to_Ready()
                 #kematox.go_to_Ready_v2()
                 print "MAIN: READY position reached\n"
                 flag_dict["position_reached"] = True
@@ -293,7 +325,7 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
     elif mode_dict["mode"] == 2: # STATIC
         if flag_dict["position_reached"] == False:
             IK.IK_SixLeg()
-            kematox.use_IK_calc()
+            kematox.use_IK_calc("support")
             #IK.IK_Diag(IK.IK_out)
             flag_dict["position_reached"] = True
             print "DIAG: MOVEMENT READY"

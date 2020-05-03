@@ -331,8 +331,11 @@ class Hexapod(object):
         self.Update_Spdict(pos.ret_to_rdy["step_4"], "TripodA", "swing", 500)
     
 
-    def use_IK_calc(self):
-        self.Update_Spdict(IK_out, "all", "support", 500)                         # time was 750ms, mode was swing -> each new position was waited to be executed 
+    def use_IK_calc(self, mode):
+        if mode == "support":
+            self.Update_Spdict(IK_out, "all", "support", 500)                         # time was 750ms, mode was swing -> each new position was waited to be executed 
+        elif mode == "swing":
+            self.Update_Spdict(IK_out, "all", "swing", 500)
 
     
     def go_to_Trans_I(self):

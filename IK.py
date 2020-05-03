@@ -1,7 +1,8 @@
+# coding=utf-8
 from math import sqrt, pow, degrees, radians, sin, cos, tan, acos, atan, atan2
 from copy import deepcopy
 
-IK_in = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0} #225.0
+IK_in = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 275.0, "z": 48.0} #225.0
 IK_in_for_Swing = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0} #225.0 is the default value 260 id for experimental purposes to cgange main stance
 #auxVal = {"recoveryReq": False, "recoveryVal": 0, "lift_value": 35.0, "dist_to_grnd": 160.0}
 
@@ -18,6 +19,15 @@ ConstantVal = { "dist_center_corncoxa": 121.0,
                                                   # positions
               }
 
+SrvoCalibrVal = {                                                               # Servo calibration values to modify the calculated servo positions
+                    "RF": {"pos_coxa":  90, "pos_femur":  50, "pos_tibia": -40},
+                    "RM": {"pos_coxa": -30, "pos_femur":  10, "pos_tibia":   0},
+                    "RR": {"pos_coxa": -30, "pos_femur":  10, "pos_tibia": -10},
+                    "LF": {"pos_coxa":  10, "pos_femur": -30, "pos_tibia":  80},
+                    "LM": {"pos_coxa": -20, "pos_femur": -10, "pos_tibia":  60},
+                    "LR": {"pos_coxa":   0, "pos_femur": -30, "pos_tibia": -10}
+                }
+              
 IK_out = {
           "RF": {"pos_coxa": 0, "pos_femur": 0, "pos_tibia": 0},
           "RM": {"pos_coxa": 0, "pos_femur": 0, "pos_tibia": 0},
@@ -42,7 +52,7 @@ TripodB_MoveTable = {
          
          
 
-def IK(leg_ID, input_dict, const_dict, output_dict):
+def IK(leg_ID, input_dict, const_dict, calibr_dict, output_dict):
     CoxaCoord = {
                     "RF": {"dCntr_RFC_X": 75.78, "dCntr_RFC_Y": 94.35},
                     "RM": {"dCntr_RMC_X": 100.95, "dCntr_RMC_Y": 0},
@@ -62,7 +72,7 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
                  }
               
     LegTotalVal = {
-                    "RF": {"RF_Total_X": 0, "RF_Total_Y": 0, "RF_TotDist_cntr_legend": 0, "RF_AngBdyCntr_X": 0},
+                    "RF": {"RF_Total_X": 0, "RF_Total_Y": 0, "RF_Total_Z": 0, "RF_TotDist_cntr_legend": 0, "RF_AngBdyCntr_X": 0},
                     "RM": {"RM_Total_X": 0, "RM_Total_Y": 0, "RM_TotDist_cntr_legend": 0, "RM_AngBdyCntr_X": 0},
                     "RR": {"RR_Total_X": 0, "RR_Total_Y": 0, "RR_TotDist_cntr_legend": 0, "RR_AngBdyCntr_X": 0},
                     "LF": {"LF_Total_X": 0, "LF_Total_Y": 0, "LF_TotDist_cntr_legend": 0, "LF_AngBdyCntr_X": 0},
@@ -187,27 +197,33 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
                 
         def Z_coord(leg_ID, const_dict, input_dict, coord_dict):
             if leg_ID == "RF":
-                z = const_dict["z_offset_def"]
+                z = input_dict["z"]
+                #z = const_dict["z_offset_def"]
                 coord_dict["RF"]["RF_FeetPos_Z"] = z
                 
             elif leg_ID == "RM":
-                z = const_dict["z_offset_def"]
+                z = input_dict["z"]
+                #z = const_dict["z_offset_def"]
                 coord_dict["RM"]["RM_FeetPos_Z"] = z
                 
             elif leg_ID == "RR":
-                z = const_dict["z_offset_def"]
+                z = input_dict["z"]
+                #z = const_dict["z_offset_def"]
                 coord_dict["RR"]["RR_FeetPos_Z"] = z
                 
             elif leg_ID == "LF":
-                z = const_dict["z_offset_def"]
+                z = input_dict["z"]
+                #z = const_dict["z_offset_def"]
                 coord_dict["LF"]["LF_FeetPos_Z"] = z
                 
             elif leg_ID == "LM":
-                z = const_dict["z_offset_def"]
+                z = input_dict["z"]
+                #z = const_dict["z_offset_def"]
                 coord_dict["LM"]["LM_FeetPos_Z"] = z
                 
-            elif leg_ID == "LR":    
-                z = const_dict["z_offset_def"]
+            elif leg_ID == "LR":
+                z = input_dict["z"]
+                #z = const_dict["z_offset_def"]
                 coord_dict["LR"]["LR_FeetPos_Z"] = z
             
         X_coord(leg_ID, const_dict, input_dict, coord_dict)
@@ -265,6 +281,35 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
             elif leg_ID == "LR":
                 ty = coord_dict["LR"]["LR_FeetPos_Y"] + cCoord_dict["LR"]["dCntr_LRC_Y"] + input_dict["POS_Y"]
                 total_dict["LR"]["LR_Total_Y"] = ty
+                
+          
+          
+        def Total_Z(leg_ID, input_dict, coord_dict, total_dict):
+            if leg_ID == "RF":
+                tz = coord_dict["RF"]["RF_FeetPos_Z"] + input_dict["POS_Z"]
+                total_dict["RF"]["RF_Total_Z"] = tz
+                
+            elif leg_ID == "RM":
+                tz = coord_dict["RM"]["RM_FeetPos_Z"] + input_dict["POS_Z"]
+                total_dict["RM"]["RM_Total_Z"] = tz
+                
+            elif leg_ID == "RR":
+                tz = coord_dict["RR"]["RR_FeetPos_Z"] + input_dict["POS_Z"]
+                total_dict["RR"]["RR_Total_Z"] = tz    
+            
+            elif leg_ID == "LF":
+                tz = coord_dict["LF"]["LF_FeetPos_Z"] + input_dict["POS_Z"]
+                total_dict["LF"]["LF_Total_Z"] = tz    
+            
+            elif leg_ID == "LM":
+                tz = coord_dict["LM"]["LM_FeetPos_Z"] + input_dict["POS_Z"]
+                total_dict["LM"]["LM_Total_Z"] = tz  
+                
+            elif leg_ID == "LR":
+                tz = coord_dict["LR"]["LR_FeetPos_Z"] + input_dict["POS_Z"]
+                total_dict["LR"]["LR_Total_Z"] = tz      
+                
+            
             
         def TotDist_cntr_legend(leg_ID, total_dict):
             if leg_ID == "RF":
@@ -290,7 +335,6 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
             elif leg_ID == "LR":
                 totDist = sqrt(pow(total_dict["LR"]["LR_Total_X"],2) + pow(total_dict["LR"]["LR_Total_Y"],2))
                 total_dict["LR"]["LR_TotDist_cntr_legend"] = totDist
-
             
         def AngBodyCntr(leg_ID, total_dict):
             if leg_ID == "RF":
@@ -319,6 +363,9 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
                 
         Total_X(leg_ID, input_dict, cCoord_dict, coord_dict, total_dict)
         Total_Y(leg_ID, input_dict, cCoord_dict, coord_dict, total_dict)
+        
+        Total_Z(leg_ID, input_dict, coord_dict, total_dict)
+        
         TotDist_cntr_legend(leg_ID, total_dict)
         AngBodyCntr(leg_ID, total_dict)
 
@@ -327,13 +374,15 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         if leg_ID == "RF":
             rp_dict["RF"]["RF_Roll_Y"] = tan(radians(input_dict["ROT_Y"])) * total_dict["RF"]["RF_Total_X"]
             rp_dict["RF"]["RF_Pitch_X"] = tan(radians(input_dict["ROT_X"])) * total_dict["RF"]["RF_Total_Y"]
-            rp_dict["RF"]["RF_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RF"]["RF_Total_X"]
+            #rp_dict["RF"]["RF_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RF"]["RF_Total_X"]
+            #rp_dict["RF"]["RF_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RF"]["RF_Total_Y"]     # nem működött
             
             
         elif leg_ID == "RM":
             rp_dict["RM"]["RM_Roll_Y"] = tan(radians(input_dict["ROT_Y"])) * total_dict["RM"]["RM_Total_X"]
             rp_dict["RM"]["RM_Pitch_X"] = tan(radians(input_dict["ROT_X"])) * total_dict["RM"]["RM_Total_Y"]
-            rp_dict["RM"]["RM_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RM"]["RM_Total_X"]
+            #rp_dict["RM"]["RM_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RM"]["RM_Total_X"]
+            #rp_dict["RM"]["RM_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RM"]["RM_Total_Y"]
             
             """rz = tan(radians(input_dict["ROT_Z"])) * total_dict["RM"]["RM_Total_X"]
             rp_dict["RM"]["RM_Roll_Z"] = rz
@@ -343,7 +392,8 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         elif leg_ID == "RR":
             rp_dict["RR"]["RR_Roll_Y"] = tan(radians(input_dict["ROT_Y"])) * total_dict["RR"]["RR_Total_X"]
             rp_dict["RR"]["RR_Pitch_X"] = tan(radians(input_dict["ROT_X"])) * total_dict["RR"]["RR_Total_Y"]
-            rp_dict["RR"]["RR_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RR"]["RR_Total_X"]
+            #rp_dict["RR"]["RR_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RR"]["RR_Total_X"]
+            #rp_dict["RR"]["RR_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["RR"]["RR_Total_Y"]    
                 
             """rz = tan(radians(input_dict["ROT_Z"])) * total_dict["RR"]["RR_Total_X"]
             rp_dict["RR"]["RR_Roll_Z"] = rz
@@ -353,7 +403,8 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         elif leg_ID == "LF":
             rp_dict["LF"]["LF_Roll_Y"] = tan(radians(input_dict["ROT_Y"])) * total_dict["LF"]["LF_Total_X"]
             rp_dict["LF"]["LF_Pitch_X"] = tan(radians(input_dict["ROT_X"])) * total_dict["LF"]["LF_Total_Y"]
-            rp_dict["LF"]["LF_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LF"]["LF_Total_X"]
+            #rp_dict["LF"]["LF_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LF"]["LF_Total_X"]
+            #rp_dict["LF"]["LF_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LF"]["LF_Total_Y"]
             
             """rz = tan(radians(input_dict["ROT_Z"])) * total_dict["LF"]["LF_Total_X"]
             rp_dict["LF"]["LF_Roll_Z"] = rz
@@ -363,7 +414,8 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         elif leg_ID == "LM":
             rp_dict["LM"]["LM_Roll_Y"] = tan(radians(input_dict["ROT_Y"])) * total_dict["LM"]["LM_Total_X"]
             rp_dict["LM"]["LM_Pitch_X"] = tan(radians(input_dict["ROT_X"])) * total_dict["LM"]["LM_Total_Y"]
-            rp_dict["LM"]["LM_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LM"]["LM_Total_X"]
+            #rp_dict["LM"]["LM_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LM"]["LM_Total_X"]
+            #rp_dict["LM"]["LM_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LM"]["LM_Total_Y"]        
                     
             """rz = tan(radians(input_dict["ROT_Z"])) * total_dict["LM"]["LM_Total_X"]
             rp_dict["LM"]["LM_Roll_Z"] = rz
@@ -373,7 +425,8 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
         elif leg_ID == "LR":
             rp_dict["LR"]["LR_Roll_Y"] = tan(radians(input_dict["ROT_Y"])) * total_dict["LR"]["LR_Total_X"]
             rp_dict["LR"]["LR_Pitch_X"] = tan(radians(input_dict["ROT_X"])) * total_dict["LR"]["LR_Total_Y"]
-            rp_dict["LR"]["LR_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LR"]["LR_Total_X"]
+            #rp_dict["LR"]["LR_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LR"]["LR_Total_X"]
+            #rp_dict["LR"]["LR_Yaw_Z"] = tan(radians(input_dict["ROT_Z"])) * total_dict["LR"]["LR_Total_Y"]
         
             """rz = tan(radians(input_dict["ROT_Z"])) * total_dict["LR"]["LR_Total_X"]
             rp_dict["LR"]["LR_Roll_Z"] = rz
@@ -383,51 +436,57 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
             
     def BodyIK(leg_ID, input_dict, total_dict, rp_dict, ik_dict):
         if leg_ID == "RF":
-            ik_x = cos(radians(total_dict["RF"]["RF_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["RF"]["RF_TotDist_cntr_legend"] - total_dict["RF"]["RF_Total_X"]
+            ik_x = cos(radians(total_dict["RF"]["RF_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["RF"]["RF_TotDist_cntr_legend"] - total_dict["RF"]["RF_Total_X"]    # ROT_Y kicesrélve ROT_Z-re
             ik_dict["RF"]["RF_BodyIK_X"] = ik_x
-            ik_y = sin(radians(total_dict["RF"]["RF_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["RF"]["RF_TotDist_cntr_legend"] - total_dict["RF"]["RF_Total_Y"]
+            ik_y = sin(radians(total_dict["RF"]["RF_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["RF"]["RF_TotDist_cntr_legend"] - total_dict["RF"]["RF_Total_Y"]
             ik_dict["RF"]["RF_BodyIK_Y"] = ik_y
-            ik_z = rp_dict["RF"]["RF_Roll_Y"] + rp_dict["RF"]["RF_Pitch_X"] + rp_dict["RF"]["RF_Yaw_Z"]
+            #ik_z = rp_dict["RF"]["RF_Roll_Y"] + rp_dict["RF"]["RF_Pitch_X"] + rp_dict["RF"]["RF_Yaw_Z"]    # modification on 2020. April 12
+            ik_z = rp_dict["RF"]["RF_Roll_Y"] + rp_dict["RF"]["RF_Pitch_X"]
             ik_dict["RF"]["RF_BodyIK_Z"] = ik_z
             
         elif leg_ID == "RM":
-            ik_x = cos(radians(total_dict["RM"]["RM_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["RM"]["RM_TotDist_cntr_legend"] - total_dict["RM"]["RM_Total_X"]
+            ik_x = cos(radians(total_dict["RM"]["RM_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["RM"]["RM_TotDist_cntr_legend"] - total_dict["RM"]["RM_Total_X"]
             ik_dict["RM"]["RM_BodyIK_X"] = ik_x
-            ik_y = sin(radians(total_dict["RM"]["RM_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["RM"]["RM_TotDist_cntr_legend"] - total_dict["RM"]["RM_Total_Y"]
+            ik_y = sin(radians(total_dict["RM"]["RM_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["RM"]["RM_TotDist_cntr_legend"] - total_dict["RM"]["RM_Total_Y"]
             ik_dict["RM"]["RM_BodyIK_Y"] = ik_y
-            ik_z = rp_dict["RM"]["RM_Roll_Y"] + rp_dict["RM"]["RM_Pitch_X"] + rp_dict["RM"]["RM_Yaw_Z"]
+            #ik_z = rp_dict["RM"]["RM_Roll_Y"] + rp_dict["RM"]["RM_Pitch_X"] + rp_dict["RM"]["RM_Yaw_Z"]
+            ik_z = rp_dict["RM"]["RM_Roll_Y"] + rp_dict["RM"]["RM_Pitch_X"]
             ik_dict["RM"]["RM_BodyIK_Z"] = ik_z
             
         elif leg_ID == "RR":
-            ik_x = cos(radians(total_dict["RR"]["RR_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["RR"]["RR_TotDist_cntr_legend"] - total_dict["RR"]["RR_Total_X"]
+            ik_x = cos(radians(total_dict["RR"]["RR_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["RR"]["RR_TotDist_cntr_legend"] - total_dict["RR"]["RR_Total_X"]
             ik_dict["RR"]["RR_BodyIK_X"] = ik_x
-            ik_y = sin(radians(total_dict["RR"]["RR_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["RR"]["RR_TotDist_cntr_legend"] - total_dict["RR"]["RR_Total_Y"]
+            ik_y = sin(radians(total_dict["RR"]["RR_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["RR"]["RR_TotDist_cntr_legend"] - total_dict["RR"]["RR_Total_Y"]
             ik_dict["RR"]["RR_BodyIK_Y"] = ik_y
-            ik_z = rp_dict["RR"]["RR_Roll_Y"] + rp_dict["RR"]["RR_Pitch_X"] + rp_dict["RR"]["RR_Yaw_Z"]
+            #ik_z = rp_dict["RR"]["RR_Roll_Y"] + rp_dict["RR"]["RR_Pitch_X"] + rp_dict["RR"]["RR_Yaw_Z"]
+            ik_z = rp_dict["RR"]["RR_Roll_Y"] + rp_dict["RR"]["RR_Pitch_X"]
             ik_dict["RR"]["RR_BodyIK_Z"] = ik_z
             
         elif leg_ID == "LF":
-            ik_x = cos(radians(total_dict["LF"]["LF_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["LF"]["LF_TotDist_cntr_legend"] - total_dict["LF"]["LF_Total_X"]
+            ik_x = cos(radians(total_dict["LF"]["LF_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["LF"]["LF_TotDist_cntr_legend"] - total_dict["LF"]["LF_Total_X"]
             ik_dict["LF"]["LF_BodyIK_X"] = ik_x
-            ik_y = sin(radians(total_dict["LF"]["LF_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["LF"]["LF_TotDist_cntr_legend"] - total_dict["LF"]["LF_Total_Y"]
+            ik_y = sin(radians(total_dict["LF"]["LF_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["LF"]["LF_TotDist_cntr_legend"] - total_dict["LF"]["LF_Total_Y"]
             ik_dict["LF"]["LF_BodyIK_Y"] = ik_y
-            ik_z = rp_dict["LF"]["LF_Roll_Y"] + rp_dict["LF"]["LF_Pitch_X"] + rp_dict["LF"]["LF_Yaw_Z"]
+            #ik_z = rp_dict["LF"]["LF_Roll_Y"] + rp_dict["LF"]["LF_Pitch_X"] + rp_dict["LF"]["LF_Yaw_Z"]
+            ik_z = rp_dict["LF"]["LF_Roll_Y"] + rp_dict["LF"]["LF_Pitch_X"]
             ik_dict["LF"]["LF_BodyIK_Z"] = ik_z
             
         elif leg_ID == "LM":
-            ik_x = cos(radians(total_dict["LM"]["LM_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["LM"]["LM_TotDist_cntr_legend"] - total_dict["LM"]["LM_Total_X"]
+            ik_x = cos(radians(total_dict["LM"]["LM_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["LM"]["LM_TotDist_cntr_legend"] - total_dict["LM"]["LM_Total_X"]
             ik_dict["LM"]["LM_BodyIK_X"] = ik_x
-            ik_y = sin(radians(total_dict["LM"]["LM_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["LM"]["LM_TotDist_cntr_legend"] - total_dict["LM"]["LM_Total_Y"]
+            ik_y = sin(radians(total_dict["LM"]["LM_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["LM"]["LM_TotDist_cntr_legend"] - total_dict["LM"]["LM_Total_Y"]
             ik_dict["LM"]["LM_BodyIK_Y"] = ik_y
-            ik_z = rp_dict["LM"]["LM_Roll_Y"] + rp_dict["LM"]["LM_Pitch_X"] + rp_dict["LM"]["LM_Yaw_Z"]
+            #ik_z = rp_dict["LM"]["LM_Roll_Y"] + rp_dict["LM"]["LM_Pitch_X"] + rp_dict["LM"]["LM_Yaw_Z"]
+            ik_z = rp_dict["LM"]["LM_Roll_Y"] + rp_dict["LM"]["LM_Pitch_X"]
             ik_dict["LM"]["LM_BodyIK_Z"] = ik_z
             
         elif leg_ID == "LR":
-            ik_x = cos(radians(total_dict["LR"]["LR_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["LR"]["LR_TotDist_cntr_legend"] - total_dict["LR"]["LR_Total_X"]
+            ik_x = cos(radians(total_dict["LR"]["LR_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["LR"]["LR_TotDist_cntr_legend"] - total_dict["LR"]["LR_Total_X"]
             ik_dict["LR"]["LR_BodyIK_X"] = ik_x
-            ik_y = sin(radians(total_dict["LR"]["LR_AngBdyCntr_X"] + input_dict["ROT_Y"])) * total_dict["LR"]["LR_TotDist_cntr_legend"] - total_dict["LR"]["LR_Total_Y"]
+            ik_y = sin(radians(total_dict["LR"]["LR_AngBdyCntr_X"] + input_dict["ROT_Z"])) * total_dict["LR"]["LR_TotDist_cntr_legend"] - total_dict["LR"]["LR_Total_Y"]
             ik_dict["LR"]["LR_BodyIK_Y"] = ik_y
-            ik_z = rp_dict["LR"]["LR_Roll_Y"] + rp_dict["LR"]["LR_Pitch_X"] + rp_dict["LR"]["LR_Yaw_Z"]
+            #ik_z = rp_dict["LR"]["LR_Roll_Y"] + rp_dict["LR"]["LR_Pitch_X"] + rp_dict["LR"]["LR_Yaw_Z"]
+            ik_z = rp_dict["LR"]["LR_Roll_Y"] + rp_dict["LR"]["LR_Pitch_X"]
             ik_dict["LR"]["LR_BodyIK_Z"] = ik_z
         
         
@@ -707,34 +766,34 @@ def IK(leg_ID, input_dict, const_dict, output_dict):
                 return srvo_pos
 
         if leg_ID == "RF":
-            output_dict["RF"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RF"]["RF_CoxaAng"])))
-            output_dict["RF"]["pos_femur"] = int(round(ConvAngToMsJX(recalc_dict["RF"]["RF_FemurAng"])))
-            output_dict["RF"]["pos_tibia"] = int(round(ConvAngToMsJX(recalc_dict["RF"]["RF_TibiaAng"])))
+            output_dict["RF"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RF"]["RF_CoxaAng"])) + calibr_dict["RF"]["pos_coxa"])
+            output_dict["RF"]["pos_femur"] = int(round(ConvAngToMsJX(recalc_dict["RF"]["RF_FemurAng"])) + calibr_dict["RF"]["pos_femur"])
+            output_dict["RF"]["pos_tibia"] = int(round(ConvAngToMsJX(recalc_dict["RF"]["RF_TibiaAng"])) + calibr_dict["RF"]["pos_tibia"])
             
         elif leg_ID == "RM":
-            output_dict["RM"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_CoxaAng"])))
-            output_dict["RM"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_FemurAng"])))
-            output_dict["RM"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_TibiaAng"])))
+            output_dict["RM"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_CoxaAng"])) + calibr_dict["RM"]["pos_coxa"])
+            output_dict["RM"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_FemurAng"])) + calibr_dict["RM"]["pos_femur"])
+            output_dict["RM"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["RM"]["RM_TibiaAng"])) + calibr_dict["RM"]["pos_tibia"])
             
         elif leg_ID == "RR":
-            output_dict["RR"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RR"]["RR_CoxaAng"])))
-            output_dict["RR"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["RR"]["RR_FemurAng"])))
-            output_dict["RR"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["RR"]["RR_TibiaAng"])))
+            output_dict["RR"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["RR"]["RR_CoxaAng"])) + calibr_dict["RR"]["pos_coxa"])
+            output_dict["RR"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["RR"]["RR_FemurAng"])) + calibr_dict["RR"]["pos_femur"])
+            output_dict["RR"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["RR"]["RR_TibiaAng"])) + calibr_dict["RR"]["pos_tibia"])
         
         elif leg_ID == "LF":
-            output_dict["LF"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LF"]["LF_CoxaAng"])))
-            output_dict["LF"]["pos_femur"] = int(round(ConvAngToMsJX(recalc_dict["LF"]["LF_FemurAng"])))
-            output_dict["LF"]["pos_tibia"] = int(round(ConvAngToMsJX(recalc_dict["LF"]["LF_TibiaAng"])))
+            output_dict["LF"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LF"]["LF_CoxaAng"])) + calibr_dict["LF"]["pos_coxa"])
+            output_dict["LF"]["pos_femur"] = int(round(ConvAngToMsJX(recalc_dict["LF"]["LF_FemurAng"])) + calibr_dict["LF"]["pos_femur"])
+            output_dict["LF"]["pos_tibia"] = int(round(ConvAngToMsJX(recalc_dict["LF"]["LF_TibiaAng"])) + calibr_dict["LF"]["pos_tibia"])
             
         elif leg_ID == "LM":
-            output_dict["LM"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_CoxaAng"])))
-            output_dict["LM"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_FemurAng"])))
-            output_dict["LM"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_TibiaAng"])))
+            output_dict["LM"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_CoxaAng"])) + calibr_dict["LM"]["pos_coxa"])
+            output_dict["LM"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_FemurAng"])) + calibr_dict["LM"]["pos_femur"])
+            output_dict["LM"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["LM"]["LM_TibiaAng"])) + calibr_dict["LM"]["pos_tibia"])
         
         elif leg_ID == "LR":
-            output_dict["LR"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_CoxaAng"])))
-            output_dict["LR"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_FemurAng"])))
-            output_dict["LR"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_TibiaAng"])))
+            output_dict["LR"]["pos_coxa"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_CoxaAng"])) + calibr_dict["LR"]["pos_coxa"])
+            output_dict["LR"]["pos_femur"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_FemurAng"])) + calibr_dict["LR"]["pos_femur"])
+            output_dict["LR"]["pos_tibia"] = int(round(ConvAngToMs(recalc_dict["LR"]["LR_TibiaAng"])) + calibr_dict["LR"]["pos_tibia"])
     
     
     LegEndPoint(leg_ID, ConstantVal, input_dict, FeetPosVal)                     #testing with input_dict, before input_dict there was IK_in
@@ -796,24 +855,24 @@ def IK_Diag(output_dict):
     
     
 def IK_SixLeg():
-    IK("RF", IK_in, ConstantVal, IK_out)
-    IK("RM", IK_in, ConstantVal, IK_out)
-    IK("RR", IK_in, ConstantVal, IK_out)
-    IK("LF", IK_in, ConstantVal, IK_out)
-    IK("LM", IK_in, ConstantVal, IK_out)
-    IK("LR", IK_in, ConstantVal, IK_out)
+    IK("RF", IK_in, ConstantVal, SrvoCalibrVal, IK_out)
+    IK("RM", IK_in, ConstantVal, SrvoCalibrVal, IK_out)
+    IK("RR", IK_in, ConstantVal, SrvoCalibrVal, IK_out)
+    IK("LF", IK_in, ConstantVal, SrvoCalibrVal, IK_out)
+    IK("LM", IK_in, ConstantVal, SrvoCalibrVal, IK_out)
+    IK("LR", IK_in, ConstantVal, SrvoCalibrVal, IK_out)
 
 
 def IK_Tripod_A(mode):
     if mode == "support":
-        IK("RF", IK_in, ConstantVal, TripodA_MoveTable)
-        IK("LM", IK_in, ConstantVal, TripodA_MoveTable)
-        IK("RR", IK_in, ConstantVal, TripodA_MoveTable)
+        IK("RF", IK_in, ConstantVal, SrvoCalibrVal, TripodA_MoveTable)
+        IK("LM", IK_in, ConstantVal, SrvoCalibrVal, TripodA_MoveTable)
+        IK("RR", IK_in, ConstantVal, SrvoCalibrVal, TripodA_MoveTable)
         #print TripodA_MoveTable
     elif mode == "swing":
-        IK("RF", IK_in_for_Swing, ConstantVal, TripodA_MoveTable)
-        IK("LM", IK_in_for_Swing, ConstantVal, TripodA_MoveTable)
-        IK("RR", IK_in_for_Swing, ConstantVal, TripodA_MoveTable)
+        IK("RF", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodA_MoveTable)
+        IK("LM", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodA_MoveTable)
+        IK("RR", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodA_MoveTable)
         
         
 def IK_Tripod_B(mode):
@@ -821,9 +880,9 @@ def IK_Tripod_B(mode):
         print "IK_in Tripod B-bol printelve:"
         print IK_in
         print "\n"
-        IK("LF", IK_in, ConstantVal, TripodB_MoveTable)
-        IK("RM", IK_in, ConstantVal, TripodB_MoveTable)
-        IK("LR", IK_in, ConstantVal, TripodB_MoveTable)
+        IK("LF", IK_in, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
+        IK("RM", IK_in, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
+        IK("LR", IK_in, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
         print "Tripod B movetable SUPPORT:"
         print TripodB_MoveTable 
         print "\n"
@@ -831,9 +890,9 @@ def IK_Tripod_B(mode):
         print "IK_in_for_Swing Tripod B-bol printelve:"
         print IK_in_for_Swing
         print "\n"
-        IK("LF", IK_in_for_Swing, ConstantVal, TripodB_MoveTable)
-        IK("RM", IK_in_for_Swing, ConstantVal, TripodB_MoveTable)
-        IK("LR", IK_in_for_Swing, ConstantVal, TripodB_MoveTable)
+        IK("LF", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
+        IK("RM", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
+        IK("LR", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
         print "Tripod B movetable SWING:"
         print TripodB_MoveTable 
         print "\n"

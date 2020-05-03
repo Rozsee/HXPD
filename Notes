@@ -1,0 +1,41 @@
+2020.03.22.
+
+IK_In dictet átszervezi az alábiak szerint
+
+Ik_In -> IK_SixLeg
+IK_TripodA
+IK_TripodB
+
+
+[ConstantVal]["z_offset_def"] érétkét jól megválasztani. Legyen az alapérték a robot "lefeküdt" állapota (48mm?). Innen ai [IK][POS_Z]-vel térün csak ki.
+
+mode static -> use IK_SixLeg
+TripodWalk -> Use IK_TripodA, IK_TripodB
+
+2020.03.30
+Tengelyeket renberakni!! 
+Amit én eddig Y tengelynek véltem, az valószínűleg a Z az IK egyenletek szerint. Ez megmagyarázná, hogy mikor az általam Y tengelynek vélte
+tengely mentén forgatom a robotot, akkor miért "tekeredik" a robot az általam vélt Z tengely körül is.
+Mikor csak az általam vélt Z körül forgattam a robotot, a gép hibátlanul forgott az általam vélt Y körül...
+
+
+
+elif (event == "R1"):                                                       # Függőleges emelkedes Z tengely menten 10mm lepesekben
+        if mode_dict["mode"] == 2:
+            if auxval["dist_to_grnd"] < 240:
+                direction_dict["POS_Z"] = direction_dict["POS_Z"] + 10
+                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] + 10
+                print auxval["dist_to_grnd"]
+                flag_dict["position_reached"] = False
+            else:
+                print "DIAG: POS_Z max value reached!"
+                
+    elif (event == "R2"):                                                       # Függőleges ereszkedes Z tengely menten 10mm lepesekben
+        if mode_dict["mode"] == 2:          
+            if auxval["dist_to_grnd"] > 110:                                    # 120 volt. 110-re modositva, hogy a lepesnel az emelt labnak legyen tartaleka
+                direction_dict["POS_Z"] = direction_dict["POS_Z"] - 10
+                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] - 10
+                print auxval["dist_to_grnd"]
+                flag_dict["position_reached"] = False
+            else:
+                print "DIAG: POS_Z min value reached!"
