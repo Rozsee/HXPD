@@ -32,7 +32,7 @@ AxisBuffer ={
             }
 auxVal = {"dist_to_grnd": 160.0, "lift_value": 35.0, "recoveryReq": False}
 
-walkVal = {"tripod_substep": 0, "walkmode": "TRIPOD", "tripod_step_1_complete": False, "tripod_step_2_complete": False}
+walkVal = {"tripod_substep": 0, "walkmode": "TRIPOD", "tripod_step_1_complete": False, "tripod_step_2_complete": True, "POS_Z_old": 0.0}
 
 EVENT = None
 
@@ -153,12 +153,10 @@ def ThumbJoyHandler(jbuff, axisbuff, flag_dict, event):
     
     
     axisbuff["axis_R2"] = funct.ds4.get_axis(4) + 1
-    print str(axisbuff["axis_R2"])
     if axisbuff["axis_R2"] < 0.1:
         if axisbuff["R2_center"] == False:
             axisbuff["axis_R2"] = 0
             jbuff["axis_R2"] = axisbuff["axis_R2"]
-            print "wiiiiiii"
             axisbuff["R2_center"] = True
             flag_dict["flag_JoyStateChng_R2"] = True
         elif axisbuff["R2_center"] == True:
@@ -190,7 +188,7 @@ def EventSource():
             pass
             
         elif event.type == funct.pygame.JOYAXISMOTION:
-            time.sleep(0.1) # szuresi kiserlet joymozgas was 0.15
+            time.sleep(0.02) # szuresi kiserlet joymozgas was 0.15, was 0,1
             ThumbJoyHandler(JoyBuffer, AxisBuffer, flags, EVENT)
     
     
@@ -227,42 +225,37 @@ def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval):
             flag_dict["return_to_Idle"] = False
             flag_dict["position_reached"] = False
          
-        """if mode_dict["mode"] == 1:
-            print "MAIN: Returning to IDLE..."
-            mode_dict["mode"] = 0
-            event = ""
-            flag_dict["position_reached"] = False
-        else:
-            print "MAIN: Returning to READY..."
-            mode_dict["mode"] = 1
-            flag_dict["return_to_Ready"] = True
-            event = ""                                                          # végül a EVENT változót töröljük
-            flag_dict["position_reached"] = False"""   
-            
-            
     elif (event == "THMB_JOY"):
         if mode_dict["mode"] == 2:                                              # Thmb joy analog ertekeinek allokálása "STATIC" mod esetén (2)
             if flag_dict["flag_shiftActivated"] == False:                       # HA SHIFT (Triangle button) nem aktív, akkor x, y tengely melntén forog, vagy "eltolodik" a robot
-                direction_dict["ROT_X"] = 10 * jbuff["left_y"] 
-                direction_dict["ROT_Z"] = 20 * jbuff["left_x"]                  #was 10
-                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
-                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
+                direction_dict["ROT_X"] = 10 * jbuff["left_y"]                  # ROT_X=BÓLINT ELŐRE
+                direction_dict["ROT_Z"] = 20 * jbuff["left_x"]                  # ROT_Z=CSAVAR FÜGGŐLEGES TENGELY KÖRÜL (was 10)
+                direction_dict["POS_X"] = 50 * jbuff["right_x"]                 # X=OLDALRA
+                direction_dict["POS_Y"] = 50 * jbuff["right_y"]                 # Y=ELŐRE
                 direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
                 flag_dict["position_reached"] = False
             elif flag_dict["flag_shiftActivated"] == True:                      # HA SHIFT (Triangle button) aktív, akkor x,y mentén "eltolódik a robot, illetve Z tengely mentén fordúl
                 direction_dict["POS_X"] = 50 * jbuff["right_x"] 
                 direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-                direction_dict["ROT_Y"] = 10 * jbuff["left_x"]
+                direction_dict["ROT_Y"] = 10 * jbuff["left_x"]                  # ROT_Y=DÖL OLDLRA
                 direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
                 flag_dict["position_reached"] = False
                     
         elif mode_dict["mode"] == 3:
-            direction_dict["POS_X"] = 50 * jbuff["right_x"] 
-            direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-            direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
-     
-    
-    
+            if flag_dict["flag_shiftActivated"] == False:  
+                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
+                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
+                direction_dict["ROT_Z"] = 20 * jbuff["left_x"]   
+                direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
+                flag_dict["position_reached"] = False
+            elif flag_dict["flag_shiftActivated"] == True:  
+                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
+                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
+                direction_dict["ROT_X"] = 10 * jbuff["left_y"]
+                direction_dict["ROT_Y"] = 10 * jbuff["left_x"] 
+                direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
+                flag_dict["position_reached"] = False
+
     elif (event == "TRIANGLE"):
         if mode_dict["mode"] == 2 or 3:
             if flag_dict["flag_shiftActivated"] == False:
@@ -278,17 +271,14 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
         if flag_dict["position_reached"] == False:
             if flag_dict["return_to_Idle"] == True:
                 print "MAIN: Returning to IDLE"
-                kematox.return_to_Idle()
+                funct.SetIdlePos(kematox, "return")
                 print "MAIN: IDLE position reached\n"
                 flag_dict["return_to_Idle"] = False
                 flag_dict["position_reached"] = True
             
             elif flag_dict["return_to_Idle"] == False:
                 print "MAIN: MODE set to IDLE"                                  # ide még a fejet idle-be parancsot be kell szúrni
-                #kematox.SetUpIdle()                                             # Kezdo, leultetett allapot felvetele
-                
-                funct.SetIdlePos(kematox)
-                              
+                funct.SetIdlePos(kematox, "set")
                 print "MAIN: IDLE position reached\n"
                 flag_dict["position_reached"] = True
                 
@@ -299,23 +289,16 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
         if flag_dict["position_reached"] == False:
             if flag_dict["return_to_Ready"] == True:
                 print "MAIN: Returning to READY"
-                
                 funct.SetReadyPos(kematox, "return")
-                
-                #kematox.return_to_Ready()
-                #IK_in["POS_Z"] = 0.0
-                #auxval["dist_to_grnd"] = 160.0                                  # A magasság jelzo valtozo visszairasa a default értékre                
+                funct.CenterHead(kematox)
                 print "MAIN: READY position reached\n"
                 flag_dict["return_to_Ready"] = False
                 flag_dict["position_reached"] = True
                 
             elif flag_dict["return_to_Ready"] == False:
                 print "MAIN: MODE set to READY"
-                
                 funct.SetReadyPos(kematox, "set")
-                
-                #kematox.go_to_Ready()
-                #kematox.go_to_Ready_v2()
+                funct.CenterHead(kematox)
                 print "MAIN: READY position reached\n"
                 flag_dict["position_reached"] = True
                 
@@ -325,41 +308,32 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
     elif mode_dict["mode"] == 2: # STATIC
         if flag_dict["position_reached"] == False:
             IK.IK_SixLeg()
-            kematox.use_IK_calc("support")
+            kematox.MoveSixLeg(None, "support")
             #IK.IK_Diag(IK.IK_out)
             flag_dict["position_reached"] = True
             print "DIAG: MOVEMENT READY"
         elif flag_dict["position_reached"] == True:
             pass
         
+        
     elif mode_dict["mode"] == 3: # WALK
-        #kematox.return_to_Ready()
-        if walkval["walkmode"] == "TRIPOD":
-            WalkVector = IK.CalcWalkVector()
-            #print "WalkVector = " + str(WalkVector)
-            if WalkVector > 0: 
-                # -----STEP_1------
-                IK_Tripod_A("support")
-                kematox.MoveTripodA("default", "support", 750)
-                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "up")         # creates IK_in_for_Swing with modified coordinates
-                IK_Tripod_B("swing")                                        # creates TripodB_MoveTable according to IK_in_for_Swing 
-                kematox.MoveTripodB("default", "swing", 750)                # executes movement according to TripodB_MoveTable
-                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "down")
-                IK_Tripod_B("swing") 
-                kematox.MoveTripodB("default", "swing", 750) 
-                # -----STEP_2------
-                IK_Tripod_B("support")
-                kematox.MoveTripodB("default", "support", 750)
-                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "up")
-                IK_Tripod_A("swing") 
-                kematox.MoveTripodA("default", "swing", 750) 
-                IK.IK_Calc_SwingLegs(IK_in_for_Swing, auxVal, "down")
-                IK_Tripod_A("swing")
-                kematox.MoveTripodA("default", "swing", 750)
-            else:
+        WalkVector = IK.CalcWalkVector()      
+        #if ((abs(IK.IK_in["ROT_Z"]) > 0 and IK.IK_in["POS_Z"]) or (IK.IK_in["ROT_Y"] > 0 and IK.IK_in["POS_Z"] > 0) or (WalkVector > 0 and IK.IK_in["POS_Z"] > 0) or (WalkVector > 0 and IK.IK_in["ROT_Y"] > 0 and IK.IK_in["POS_Z"] > 0)):
+        if ((abs(IK.IK_in["ROT_Z"]) > 0 and IK.IK_in["POS_Z"]) or (WalkVector > 0 and IK.IK_in["POS_Z"] > 0) or (WalkVector > 0 and IK.IK_in["ROT_Y"] > 0 and IK.IK_in["POS_Z"] > 0)):
+            print "WALK"
+            funct.TripodWalk(kematox, walkVal)
+            
+        elif (IK.IK_in["POS_Z"] > 0 or IK.IK_in["ROT_Y"] > 0 or WalkVector >0 or (IK.IK_in["ROT_Y"] > 0 and WalkVector >0) or (IK.IK_in["POS_Z"] == 0 and IK.IK_in["ROT_Y"] == 0 and WalkVector == 0)): 
+            """Akkor is STATIC legyen a mód, ha minden 0 -> visszatérjen a robot alaphelyzetbe """
+            print "STATIC"
+            if flag_dict["position_reached"] == False:
+                IK.IK_SixLeg()
+                kematox.MoveSixLeg(None, "support")
+                flag_dict["position_reached"] = True
+                print "DIAG: MOVEMENT READY"
+            elif flag_dict["position_reached"] == True:
                 pass
-     
-    
+
 """ PROGRAM START """   
 kematox = obj.Hexapod("kematox")
 funct.InitDS4()

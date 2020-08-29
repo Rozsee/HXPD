@@ -1,5 +1,4 @@
 2020.03.22.
-
 IK_In dictet átszervezi az alábiak szerint
 
 Ik_In -> IK_SixLeg
@@ -12,6 +11,7 @@ IK_TripodB
 mode static -> use IK_SixLeg
 TripodWalk -> Use IK_TripodA, IK_TripodB
 
+
 2020.03.30
 Tengelyeket renberakni!! 
 Amit én eddig Y tengelynek véltem, az valószínűleg a Z az IK egyenletek szerint. Ez megmagyarázná, hogy mikor az általam Y tengelynek vélte
@@ -19,23 +19,25 @@ tengely mentén forgatom a robotot, akkor miért "tekeredik" a robot az általam
 Mikor csak az általam vélt Z körül forgattam a robotot, a gép hibátlanul forgott az általam vélt Y körül...
 
 
+2020.05.?? - 06.??
 
-elif (event == "R1"):                                                       # Függőleges emelkedes Z tengely menten 10mm lepesekben
-        if mode_dict["mode"] == 2:
-            if auxval["dist_to_grnd"] < 240:
-                direction_dict["POS_Z"] = direction_dict["POS_Z"] + 10
-                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] + 10
-                print auxval["dist_to_grnd"]
-                flag_dict["position_reached"] = False
-            else:
-                print "DIAG: POS_Z max value reached!"
-                
-    elif (event == "R2"):                                                       # Függőleges ereszkedes Z tengely menten 10mm lepesekben
-        if mode_dict["mode"] == 2:          
-            if auxval["dist_to_grnd"] > 110:                                    # 120 volt. 110-re modositva, hogy a lepesnel az emelt labnak legyen tartaleka
-                direction_dict["POS_Z"] = direction_dict["POS_Z"] - 10
-                auxval["dist_to_grnd"] = auxval["dist_to_grnd"] - 10
-                print auxval["dist_to_grnd"]
-                flag_dict["position_reached"] = False
-            else:
-                print "DIAG: POS_Z min value reached!"
+
+2020.07.13-14
+Tripod walk újra működik. Ehhez a következő kellett: Mikor a lépést (swing) végző Tripod emeli a lábakat, akkor mind a POS_X, POS_Y, és ROT_Y
+paramétereket 0.0-ra kell visszaállítani, hogy a "lépés megtörténjen. Ellenkező esetben csak előre, vagy oldalra hajol a robot és egy helyben lépdel.
+
+A rejtélyes kiakadás oka. Hibaüzenet, float + None type = error. A float érték egy számított érték, ha jól gondolom a NoneType a POS_Z paraméter lehet.
+Megnéztem, elvileg az IK.In-be íródik be. Lehet át kéne állítani az IK.In váltózókat 0-ról 0.0-ra (hogy float legyen?)?
+
+
+2020.07.15
+A lépés magasságának rejtélye megoldva. A Z csak meghatározott értéket vehet fel -1 és 1 között 0,1-es lépésekben ->ezekhez fix érték tartozik,
+ha kiszámolom belőle Z-t. az if feltételeket Z esetében ezekhez a kalkulált értékek valamelyikéhez kell megszabni.
+Az IK_in-ben minden elemet 0-ról 0.0-ra állítottam (float). Eddig nem akadt ki.
+
+A magasság állítást az R2-ről át kellene rakni L1-re...
+
+A return to idle-t elkezdtem átírni. Cél hogy a pos.py file-t ne kelljen használni, hanem a robot maga számolja ki hova álljon be. Egész jól működik. 
+Megoldandó még:
+    - LF láb emelésnél mintha beragadna
+    - az use.ikcalc függvényt át kéne írni úgy, hogy a mozgás idő megadható legyen, ne csak a default idővel mozogjon a robot.

@@ -2,9 +2,11 @@
 from math import sqrt, pow, degrees, radians, sin, cos, tan, acos, atan, atan2
 from copy import deepcopy
 
-IK_in = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 275.0, "z": 48.0} #225.0
-IK_in_for_Swing = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0} #225.0 is the default value 260 id for experimental purposes to cgange main stance
-#auxVal = {"recoveryReq": False, "recoveryVal": 0, "lift_value": 35.0, "dist_to_grnd": 160.0}
+IK_in = {"POS_X": 0.0, "POS_Y": 0.0, "POS_Z": 0.0, "ROT_X": 0.0, "ROT_Y": 0.0, "ROT_Z": 0.0, "D": 275.0, "z": 48.0} #225.0
+HeadMovInput = {"headBow": 90.0, "headTwist": 90.0, "headSide": 90.0}                                               # Head servo poziciók fokban megadva (bemenő paraméterek) 
+HeadMovOutput = {"pos_headBow": 0, "pos_headTwist": 0, "pos_headSide": 0}                                           # Head servo pozíciók ms-ba átszámolva (kimenő paraméterek)
+HeadCalibrVal = {"pos_headBow": 50, "pos_headTwist": -80, "pos_headSide": 50}                                       # Servo calibration values to add the calculated values
+IK_in_for_Swing = {"POS_X": 0 , "POS_Y": 0, "POS_Z": 0, "ROT_X": 0, "ROT_Y": 0, "ROT_Z": 0, "D": 225.0}             #225.0 is the default value 260 id for experimental purposes to cgange main stance
 
 ConstantVal = { "dist_center_corncoxa": 121.0,
                 "dist_center_midcoxa": 101.0,
@@ -73,11 +75,11 @@ def IK(leg_ID, input_dict, const_dict, calibr_dict, output_dict):
               
     LegTotalVal = {
                     "RF": {"RF_Total_X": 0, "RF_Total_Y": 0, "RF_Total_Z": 0, "RF_TotDist_cntr_legend": 0, "RF_AngBdyCntr_X": 0},
-                    "RM": {"RM_Total_X": 0, "RM_Total_Y": 0, "RM_TotDist_cntr_legend": 0, "RM_AngBdyCntr_X": 0},
-                    "RR": {"RR_Total_X": 0, "RR_Total_Y": 0, "RR_TotDist_cntr_legend": 0, "RR_AngBdyCntr_X": 0},
-                    "LF": {"LF_Total_X": 0, "LF_Total_Y": 0, "LF_TotDist_cntr_legend": 0, "LF_AngBdyCntr_X": 0},
-                    "LM": {"LM_Total_X": 0, "LM_Total_Y": 0, "LM_TotDist_cntr_legend": 0, "LM_AngBdyCntr_X": 0},
-                    "LR": {"LR_Total_X": 0, "LR_Total_Y": 0, "LR_TotDist_cntr_legend": 0, "LR_AngBdyCntr_X": 0}
+                    "RM": {"RM_Total_X": 0, "RM_Total_Y": 0, "RM_Total_Z": 0, "RM_TotDist_cntr_legend": 0, "RM_AngBdyCntr_X": 0},
+                    "RR": {"RR_Total_X": 0, "RR_Total_Y": 0, "RR_Total_Z": 0, "RR_TotDist_cntr_legend": 0, "RR_AngBdyCntr_X": 0},
+                    "LF": {"LF_Total_X": 0, "LF_Total_Y": 0, "LF_Total_Z": 0, "LF_TotDist_cntr_legend": 0, "LF_AngBdyCntr_X": 0},
+                    "LM": {"LM_Total_X": 0, "LM_Total_Y": 0, "LM_Total_Z": 0, "LM_TotDist_cntr_legend": 0, "LM_AngBdyCntr_X": 0},
+                    "LR": {"LR_Total_X": 0, "LR_Total_Y": 0, "LR_Total_Z": 0, "LR_TotDist_cntr_legend": 0, "LR_AngBdyCntr_X": 0}
                   }
             
     RollPitchVal = {
@@ -877,25 +879,15 @@ def IK_Tripod_A(mode):
         
 def IK_Tripod_B(mode):
     if mode == "support":
-        print "IK_in Tripod B-bol printelve:"
-        print IK_in
-        print "\n"
         IK("LF", IK_in, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
         IK("RM", IK_in, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
         IK("LR", IK_in, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
-        print "Tripod B movetable SUPPORT:"
-        print TripodB_MoveTable 
-        print "\n"
+
     elif mode == "swing":
-        print "IK_in_for_Swing Tripod B-bol printelve:"
-        print IK_in_for_Swing
-        print "\n"
         IK("LF", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
         IK("RM", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
         IK("LR", IK_in_for_Swing, ConstantVal, SrvoCalibrVal, TripodB_MoveTable)
-        print "Tripod B movetable SWING:"
-        print TripodB_MoveTable 
-        print "\n"
+
         
     
 def CalcWalkVector():
@@ -927,6 +919,23 @@ def IK_Calc_SwingLegs(aux_coord, aux_val, direction):
                 aux_coord["POS_Z"] + aux_val["diff"]
             else:
                 aux_coord["POS_Z"] = aux_coord["POS_Z"] + aux_val["lift_value"]
+
+
+def CalcHeadPos(input, calibrationVal, output):
+    def AngToMs(ang):
+        srvo_pos = (((2500.0-500.0) / 180.0) * ang) + 500.0
+        if srvo_pos > 2500:
+            srvo_pos = 2500.0
+            return srvo_pos
+        elif srvo_pos < 500:
+            srvo_pos = 500.0
+            return srvo_pos
+        else:
+            return srvo_pos
+
+    output["pos_headBow"] = int(round(AngToMs(input["headBow"]))) + calibrationVal["pos_headBow"]
+    output["pos_headTwist"] = int(round(AngToMs(input["headTwist"]))) + calibrationVal["pos_headTwist"]
+    output["pos_headSide"] = int(round(AngToMs(input["headSide"]))) + calibrationVal["pos_headSide"]
 
 #IK_Tripod_B("swing")
 #IK_SixLeg()

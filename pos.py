@@ -334,3 +334,57 @@ reset_tripod_2 = {
                         "LM": {"pos_femur": 1262, "pos_tibia": 1269, "pos_coxa": 1500},                     
                       }
                  }
+
+""" Definitions that used values from pos.py are saved here as an archive... """
+"""
+ def SetUpIdle(self):
+        self.Update_Spdict(pos.pos_idle["step_1"], "all", "support", 500)
+
+    def return_to_Idle(self):
+        # READY pozícióból IDLE pozicíóba viszi a robotot
+        self.Update_Spdict(pos.rdy_to_idle["step_8"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.rdy_to_idle["step_5"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.rdy_to_idle["step_6"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.rdy_to_idle["step_3"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.rdy_to_idle["step_8"], "TripodA", "swing", 500)
+        self.Update_Spdict(pos.rdy_to_idle["step_81"], "TripodA", "swing", 500)
+        self.Update_Spdict(pos.rdy_to_idle["step_82"], "TripodB", "swing", 500)
+        self.Update_Spdict(pos.rdy_to_idle["step_83"], "TripodB", "swing", 500)
+        self.Update_Spdict(pos.rdy_to_idle["step_84"], "all", "swing", 1000)
+        
+
+    def go_to_Ready(self):
+        # IDLE pozícióból READY pozicíóba viszi a robotot
+        self.Update_Spdict(pos.idle_to_rdy["step_1"], "all", "swing", 500)
+        self.Update_Spdict(pos.idle_to_rdy["step_2"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.idle_to_rdy["step_3"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.idle_to_rdy["step_4"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.idle_to_rdy["step_5"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.idle_to_rdy["step_6"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.idle_to_rdy["step_7"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.idle_to_rdy["step_8"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.idle_to_rdy["step_9"], "TripodA", "swing", 500) # TPB
+
+    def go_to_Ready_v2(self):
+        # IDLE pozícióból READY pozicíóba viszi a robotot
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_1"], "all", "swing", 500)
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_2"], "TripodB", "swing", 500) # TPA
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_3"], "TripodB", "swing", 250) # TPA
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_4"], "TripodA", "swing", 500) # TPB
+        self.Update_Spdict(pos.idle_to_rdy_v2["step_5"], "TripodA", "swing", 250) # TPB
+
+    def return_to_Ready(self):
+        # Elvileg bármilyen pozícióbol READY pozícióba viszi a robotot
+        self.Update_Spdict(pos.ret_to_rdy["step_1"], "TripodB", "swing", 500)
+        self.Update_Spdict(pos.ret_to_rdy["step_2"], "TripodB", "swing", 500)
+        self.Update_Spdict(pos.ret_to_rdy["step_3"], "TripodA", "swing", 500)
+        self.Update_Spdict(pos.ret_to_rdy["step_4"], "TripodA", "swing", 500)
+
+def go_to_Trans_I(self):
+        self.Update_Spdict(pos.rdy_to_trns_1["step_1"])
+        self.Update_Spdict(pos.rdy_to_trns_1["step_2"])
+        self.Update_Spdict(pos.rdy_to_trns_1["step_3"])
+        self.Update_Spdict(pos.rdy_to_trns_1["step_4"])
+        self.Update_Spdict(pos.rdy_to_trns_1["step_5"])    
+
+"""
