@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jan 26 21:29:41 2018
+#########################
+LINUX VERSION use on RPi
+#########################
 
+Created on Fri Jan 26 21:29:41 2018
 @author: Rozsee
 """
 import serial  
 #from copy import deepcopy
-#import RPi.GPIO as GPIO                                                      # GPIO-t kezelő modul importálása
-#GPIO.setmode(GPIO.BCM)        
+import RPi.GPIO as GPIO                                                      # GPIO-t kezelő modul importálása
+GPIO.setmode(GPIO.BCM)        
 #import pos
 #import IK
 from IK import IK_in, IK_out, HeadMovOutput, TripodA_MoveTable, TripodB_MoveTable
@@ -32,7 +35,7 @@ class Leg:
         self.Coxa = Servo(servo_param_dict.get("id_coxa"), servo_param_dict.get("pos_coxa"), SrvCtrl)
         self.Femur = Servo(servo_param_dict.get("id_femur"), servo_param_dict.get("pos_femur"), SrvCtrl)
         self.Tibia = Servo(servo_param_dict.get("id_tibia"), servo_param_dict.get("pos_tibia"), SrvCtrl)
-        #GPIO.setup(servo_param_dict.get("GPIO"), GPIO.IN)                    # Setup footswitch GPIO port to IN
+        GPIO.setup(servo_param_dict.get("GPIO"), GPIO.IN)                    # Setup footswitch GPIO port to IN
         self.FootSwitch = servo_param_dict.get("GPIO")
     
 
@@ -79,7 +82,7 @@ class SrvCtrl(object):
     def __init__(self, name):
         self.Name = name
         self.CmdBuf = ""
-        self.Port = serial.Serial('COM3', 115200, timeout = 0.06)              # LINUXHOZ: serial.Serial('/dev/ttyAMA0', 115200, timeout = 1) comport was 3
+        self.Port = serial.Serial('/dev/ttyAMA0', 115200, timeout = 0.06)              # LINUXHOZ: serial.Serial('/dev/ttyAMA0', 115200, timeout = 1) comport was 3
 
     def SetToMove(self, cmd_string):
         """ A paraméterként megadott stringet mindíg hozzáadjuk a CmdBuf-hoz """
@@ -272,8 +275,8 @@ class Hexapod(object):
             self.SRVCTRL.ExecuteMove(movetime, "NoPoll")  
 
 
-    def MoveHead(self, headservopos, movetime):
-        self.TransferHeadPosToSrvoCtrl(headservopos, movetime)
+    def MoveHead(self, HeadMovOutput, movetime):
+        self.TransferHeadPosToSrvoCtrl(HeadMovOutput, movetime)
 
     """
     def LegFeetToGround(self, leg):

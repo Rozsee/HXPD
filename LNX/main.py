@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Dec 20 15:47:59 2017
+#########################
+LINUX VERSION use on RPi
+#########################
 
+Created on Wed Dec 20 15:47:59 2017
 @author: Rozsee
 """ 
 import sys
@@ -12,7 +15,7 @@ import funct
 import IK
 import time
 from copy import deepcopy
-from IK import IK_in, IK_in_for_Swing, IK_Tripod_A, IK_Tripod_B, HeadMovInput, HeadCalibrVal, HeadMovOutput
+from IK import IK_in, IK_in_for_Swing, IK_Tripod_A, IK_Tripod_B
 
 
 """ VARIABLE DECLARATIONS """
@@ -22,7 +25,7 @@ flags = {"position_reached": False,
          "return_to_Ready": False, "return_to_Idle": False,
          "flag_thumbJoyStateChng_lx": False, "flag_thumbJoyStateChng_ly": False, 
          "flag_thumbJoyStateChng_rx": False, "flag_thumbJoyStateChng_ry": False,
-         "flag_JoyStateChng_R2": False, "flag_shiftActivated": False, "flag_headModeSelected": False}
+         "flag_JoyStateChng_R2": False, "flag_shiftActivated": False,}
 JoyBuffer = {"left_x": 0.0, "left_y": 0.0, "right_x": 0.0, "right_y": 0.0, "axis_R2": 0.0}
 AxisBuffer ={
                 "axis_lx": 0.0, "axis_ly": 0.0, "axis_rx": 0.0, "axis_ry": 0.0, "axis_L2": 0.0, "axis_R2":0.0,
@@ -49,32 +52,31 @@ def JoyButtonHandler(event):
                 event = "CROSS"
             elif i == 2: 
                 event = "CIRCLE"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal, HeadMovInput) # used to select head movement
             elif i == 3: 
                 event = "TRIANGLE"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal, HeadMovInput)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 4: 
                 event = "L1"
             elif i == 5: 
                 event = "R1"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal, HeadMovInput)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 6: 
                 event = "L2"
             elif i == 7: 
                 event = "R2"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal, HeadMovInput)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 8: 
                 event = "SHARE"
             elif i == 9: 
                 event = "OPTIONS"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal, HeadMovInput)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 10: 
                 event = "LEFT THUMB. BTN."
             elif i == 11: 
                 event = "RIGHT THUMB. BTN."
             elif i == 12: 
                 event = "PSBTN"
-                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal, HeadMovInput)
+                EventDispatch(event, modeVal, IK_in, AxisBuffer, flags, auxVal)
             elif i == 13: 
                 event = "TOUCH SCREEN"
     
@@ -175,7 +177,7 @@ def ThumbJoyHandler(jbuff, axisbuff, flag_dict, event):
     if flag_dict["flag_thumbJoyStateChng_lx"] or flag_dict["flag_thumbJoyStateChng_ly"] or flag_dict["flag_thumbJoyStateChng_rx"] or flag_dict["flag_thumbJoyStateChng_ry"] or flag_dict["flag_JoyStateChng_R2"] == True:
         event = "THMB_JOY"
         #print "THMB_JOYEVENT ---> THMB_JOYEVENT"
-        EventDispatch(event, modeVal, IK_in, JoyBuffer, flags, auxVal, HeadMovInput)
+        EventDispatch(event, modeVal, IK_in, JoyBuffer, flags, auxVal)
         flag_dict["flag_thumbJoyStateChng"] = False
     
     
@@ -193,7 +195,7 @@ def EventSource():
             ThumbJoyHandler(JoyBuffer, AxisBuffer, flags, EVENT)
     
     
-def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval, head_in):
+def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval):
     if (event == "OPTIONS"):                                                    # HA az OPTIONS gombot megnyomtak,
         print "MAIN: Changing mode..."
         mode_dict["prev_mode"] = mode_dict["mode"]
@@ -227,40 +229,21 @@ def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval, he
             flag_dict["position_reached"] = False
          
     elif (event == "THMB_JOY"):
-        if mode_dict["mode"] == 2:                                                                           # Thmb joy analog ertekeinek allokálása "STATIC" mod esetén (2)
-            if flag_dict["flag_shiftActivated"] == False and flag_dict["flag_headModeSelected"] == False:    # HA SHIFT (Triangle button) nem aktív, akkor x, y tengely melntén forog, vagy "eltolodik" a robot
-                direction_dict["ROT_X"] = 10 * jbuff["left_y"]                                               # ROT_X=BÓLINT ELŐRE
-                direction_dict["ROT_Z"] = 20 * jbuff["left_x"]                                               # ROT_Z=CSAVAR FÜGGŐLEGES TENGELY KÖRÜL (was 10)
-                direction_dict["POS_X"] = 50 * jbuff["right_x"]                                              # X=OLDALRA
-                direction_dict["POS_Y"] = 50 * jbuff["right_y"]                                              # Y=ELŐRE
+        if mode_dict["mode"] == 2:                                              # Thmb joy analog ertekeinek allokálása "STATIC" mod esetén (2)
+            if flag_dict["flag_shiftActivated"] == False:                       # HA SHIFT (Triangle button) nem aktív, akkor x, y tengely melntén forog, vagy "eltolodik" a robot
+                direction_dict["ROT_X"] = 10 * jbuff["left_y"]                  # ROT_X=BÓLINT ELŐRE
+                direction_dict["ROT_Z"] = 20 * jbuff["left_x"]                  # ROT_Z=CSAVAR FÜGGŐLEGES TENGELY KÖRÜL (was 10)
+                direction_dict["POS_X"] = 50 * jbuff["right_x"]                 # X=OLDALRA
+                direction_dict["POS_Y"] = 50 * jbuff["right_y"]                 # Y=ELŐRE
                 direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
                 flag_dict["position_reached"] = False
-            elif flag_dict["flag_shiftActivated"] == True and flag_dict["flag_headModeSelected"] == False:   # HA SHIFT (Triangle button) aktív, akkor x,y mentén "eltolódik a robot, illetve Z tengely mentén fordúl
+            elif flag_dict["flag_shiftActivated"] == True:                      # HA SHIFT (Triangle button) aktív, akkor x,y mentén "eltolódik a robot, illetve Z tengely mentén fordúl
                 direction_dict["POS_X"] = 50 * jbuff["right_x"] 
                 direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-                direction_dict["ROT_Y"] = 10 * jbuff["left_x"]                                               # ROT_Y=DÖL OLDLRA
+                direction_dict["ROT_Y"] = 10 * jbuff["left_x"]                  # ROT_Y=DÖL OLDLRA
                 direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
                 flag_dict["position_reached"] = False
-            elif flag_dict["flag_shiftActivated"] == False and flag_dict["flag_headModeSelected"] == True:
-                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
-                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-                direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
-
-                head_in["headSide_diff"] = funct.calc_HeadSidePos(jbuff)                                   # uses jbuff["left_x"]
-                head_in["headBow_diff"] = funct.calc_HeadBowPos(jbuff)                                     # uses jbuff["left_y"]
-
-                flag_dict["position_reached"] = False
-
-            elif flag_dict["flag_shiftActivated"] == True and flag_dict["flag_headModeSelected"] == True:
-                direction_dict["POS_X"] = 50 * jbuff["right_x"] 
-                direction_dict["POS_Y"] = 50 * jbuff["right_y"]
-                direction_dict["ROT_Y"] = 10 * jbuff["left_x"]                                               # ROT_Y=DÖL OLDLRA
-                direction_dict["POS_Z"] = funct.calc_POS_Z(IK_in, jbuff)
-
-                head_in["headTwist_diff"] = funct.calc_HeadTwistPos(jbuff)
-
-                flag_dict["position_reached"] = False
-
+                    
         elif mode_dict["mode"] == 3:
             if flag_dict["flag_shiftActivated"] == False:  
                 direction_dict["POS_X"] = 50 * jbuff["right_x"] 
@@ -280,19 +263,11 @@ def EventDispatch(event, mode_dict, direction_dict, jbuff, flag_dict, auxval, he
         if mode_dict["mode"] == 2 or 3:
             if flag_dict["flag_shiftActivated"] == False:
                 flag_dict["flag_shiftActivated"] = True
-                print "MAIN: SHIFT is ON"
+                print "SHIFT is ON"
             elif flag_dict["flag_shiftActivated"] == True:
                 flag_dict["flag_shiftActivated"] = False
-                print "MAIN: SHIFT is OFF"
-
-    elif (event == "CIRCLE"):
-            if mode_dict["mode"] == 2 or 3:
-                if flag_dict["flag_headModeSelected"] == False:
-                    flag_dict["flag_headModeSelected"] = True
-                    print "MAIN: Head mode is ON"
-                elif flag_dict["flag_headModeSelected"] == True:
-                    flag_dict["flag_headModeSelected"] = False
-                    print "MAIN: Head mode is OFF"
+                print "SHIFT is OFF"
+            
 
 def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
     if mode_dict["mode"] == 0: # IDLE
@@ -334,26 +309,14 @@ def EventExecute(event, mode_dict, flag_dict, auxval, walkval):
             pass
             
     elif mode_dict["mode"] == 2: # STATIC
-        if flag_dict["flag_headModeSelected"] == False:
-            if flag_dict["position_reached"] == False:
-                IK.IK_SixLeg()
-                kematox.MoveSixLeg(None, "support")
-                #IK.IK_Diag(IK.IK_out)
-                flag_dict["position_reached"] = True
-                print "DIAG: MOVEMENT READY"
-            elif flag_dict["position_reached"] == True:
-                pass
-        elif flag_dict["flag_headModeSelected"] == True:
-            if flag_dict["position_reached"] == False:
-                IK.IK_SixLeg()
-                kematox.MoveSixLeg(None, "support")
-                IK.CalcHeadPos(HeadMovInput, HeadCalibrVal, HeadMovOutput)
-                kematox.MoveHead(HeadMovOutput, 500)
-                #IK.IK_Diag(IK.IK_out)
-                flag_dict["position_reached"] = True
-                print "DIAG: MOVEMENT READY"
-            elif flag_dict["position_reached"] == True:
-                pass
+        if flag_dict["position_reached"] == False:
+            IK.IK_SixLeg()
+            kematox.MoveSixLeg(None, "support")
+            #IK.IK_Diag(IK.IK_out)
+            flag_dict["position_reached"] = True
+            print "DIAG: MOVEMENT READY"
+        elif flag_dict["position_reached"] == True:
+            pass
         
         
     elif mode_dict["mode"] == 3: # WALK

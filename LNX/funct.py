@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jan 26 21:27:17 2018
+#########################
+LINUX VERSION use on RPi
+#########################
 
+Created on Fri Jan 26 21:27:17 2018
 @author: Rozsee
 """
 import pygame
@@ -242,35 +245,6 @@ def calc_POS_Z(input_dict, jbuff):
     pos_z = ((((z_maxVal - z_minVal) / (shifted_joy_maxVal -shifted_joy_minVal)) * jbuff["axis_R2"]) + z_minVal) - z_minVal
     return pos_z
     
-def calc_HeadSidePos(jbuff):
-    HeadSide_minVal = 60.0
-    HeadSide_maxVal = 120.0
-    joy_minVal = -1.0
-    joy_maxVal = 1.0
-
-    HeadSidePosVal = ((((HeadSide_maxVal - HeadSide_minVal) / (joy_maxVal - joy_minVal)) * jbuff["left_x"] * -1) + HeadSide_minVal) - HeadSide_minVal       # A -1-el valo szorzas azert van, hogy a fej a joy mozgással megegyezo iranyba mozduljon, ne invertalva
-    print HeadSidePosVal
-    return HeadSidePosVal
-
-def calc_HeadBowPos(jbuff):
-    HeadBow_minVal = 50.0
-    HeadBow_maxVal = 140.0
-    joy_minVal = -1.0
-    joy_maxVal = 1.0
-
-    HeadBowPosVal = ((((HeadBow_maxVal - HeadBow_minVal) / (joy_maxVal - joy_minVal)) * jbuff["left_y"] * -1) + HeadBow_minVal) - HeadBow_minVal            # A -1-el valo szorzas azert van, hogy a fej a joy mozgással megegyezo iranyba mozduljon, ne invertalva
-    return HeadBowPosVal
-
-def calc_HeadTwistPos(jbuff):
-    HeadTwist_minVal = 60.0
-    HeadTwist_maxVal = 120.0
-    joy_minVal = -1.0
-    joy_maxVal = 1.0
-
-    HeadTwistPosVal = ((((HeadTwist_maxVal - HeadTwist_minVal) / (joy_maxVal - joy_minVal)) * jbuff["left_y"] * -1) + HeadTwist_minVal) - HeadTwist_minVal            # A -1-el valo szorzas azert van, hogy a fej a joy mozgással megegyezo iranyba mozduljon, ne invertalva
-    return HeadTwistPosVal
-
-
 def CenterHead(kematox):
     IK.CalcHeadPos(HeadMovInput, HeadCalibrVal, HeadMovOutput)
     kematox.MoveHead(HeadMovOutput, 500)
